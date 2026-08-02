@@ -12,6 +12,7 @@ import {
   Wallet,
   LineChart,
   UserCog,
+  Tags,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/jobs", label: "Job Orders", icon: Boxes },
   { href: "/dashboard/production", label: "Production", icon: Factory },
   { href: "/dashboard/invoices", label: "Invoices", icon: Wallet },
+  { href: "/dashboard/catalog", label: "Catalog", icon: Tags },
   { href: "/dashboard/reports", label: "Reports", icon: LineChart },
   { href: "/dashboard/staff", label: "Staff", icon: UserCog },
 ];

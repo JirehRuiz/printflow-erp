@@ -7,6 +7,16 @@ import { PRODUCT_TYPES, UNITS, formatCurrency } from "@/lib/constants";
 
 type Customer = { id: string; name: string; company_name: string | null };
 
+type CatalogItem = {
+  id: string;
+  product_type: string;
+  name: string;
+  description: string;
+  material: string | null;
+  unit: string;
+  selling_price: number;
+};
+
 type LineItem = {
   product_type: string;
   description: string;
@@ -16,6 +26,7 @@ type LineItem = {
   unit: string;
   qty: string;
   unit_price: string;
+  catalog_item_id: string;
 };
 
 const emptyItem = (): LineItem => ({
@@ -27,6 +38,7 @@ const emptyItem = (): LineItem => ({
   unit: "pcs",
   qty: "1",
   unit_price: "0",
+  catalog_item_id: "",
 });
 
 type ExistingQuotation = {
@@ -41,9 +53,11 @@ type ExistingQuotation = {
 
 export default function QuotationForm({
   customers,
+  catalogItems = [],
   existingQuotation,
 }: {
   customers: Customer[];
+  catalogItems?: CatalogItem[];
   existingQuotation?: ExistingQuotation;
 }) {
   const router = useRouter();
@@ -81,6 +95,31 @@ export default function QuotationForm({
   function updateItem(index: number, field: keyof LineItem, value: string) {
     setItems((prev) =>
       prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+    );
+  }
+
+  function applyCatalogItem(index: number, catalogItemId: string) {
+    if (!catalogItemId) {
+      // "Custom" selected — clear the link but leave any typed values as-is
+      updateItem(index, "catalog_item_id", "");
+      return;
+    }
+    const match = catalogItems.find((c) => c.id === catalogItemId);
+    if (!match) return;
+
+    setItems((prev) =>
+      prev.map((item, i) =>
+        i === index
+          ? {
+              ...item,
+              catalog_item_id: catalogItemId,
+              description: match.description,
+              material: match.material ?? "",
+              unit: match.unit,
+              unit_price: String(match.selling_price),
+            }
+          : item
+      )
     );
   }
 
@@ -264,12 +303,15 @@ export default function QuotationForm({
         <div className="space-y-4">
           {items.map((item, index) => (
             <div key={index} className="rounded-lg border border-gray-100 bg-gray-50 p-4">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-8">
                 <div className="col-span-2 sm:col-span-2">
                   <label className="mb-1 block text-xs font-medium text-gray-500">Product Type</label>
                   <select
                     value={item.product_type}
-                    onChange={(e) => updateItem(index, "product_type", e.target.value)}
+                    onChange={(e) => {
+                      updateItem(index, "product_type", e.target.value);
+                      updateItem(index, "catalog_item_id", "");
+                    }}
                     className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
                   >
                     {PRODUCT_TYPES.map((pt) => (
@@ -277,6 +319,25 @@ export default function QuotationForm({
                         {pt.label}
                       </option>
                     ))}
+                  </select>
+                </div>
+                <div className="col-span-2 sm:col-span-2">
+                  <label className="mb-1 block text-xs font-medium text-gray-500">
+                    Catalog Item
+                  </label>
+                  <select
+                    value={item.catalog_item_id}
+                    onChange={(e) => applyCatalogItem(index, e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+                  >
+                    <option value="">Custom (type manually)</option>
+                    {catalogItems
+                      .filter((c) => c.product_type === item.product_type)
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} — {formatCurrency(c.selling_price)}
+                        </option>
+                      ))}
                   </select>
                 </div>
                 <div className="col-span-2 sm:col-span-2">

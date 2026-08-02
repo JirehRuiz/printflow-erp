@@ -34,6 +34,12 @@ export default async function EditQuotationPage({
     .select("id, name, company_name")
     .order("name");
 
+  const { data: catalogItems } = await supabase
+    .from("catalog_items")
+    .select("id, product_type, name, description, material, unit, selling_price")
+    .eq("is_active", true)
+    .order("name");
+
   const formattedItems = (items ?? []).map((item) => ({
     product_type: item.product_type,
     description: item.description,
@@ -43,6 +49,7 @@ export default async function EditQuotationPage({
     unit: item.unit,
     qty: item.qty.toString(),
     unit_price: item.unit_price.toString(),
+    catalog_item_id: "",
   }));
 
   return (
@@ -55,6 +62,7 @@ export default async function EditQuotationPage({
       <div className="mt-6">
         <QuotationForm
           customers={customers ?? []}
+          catalogItems={catalogItems ?? []}
           existingQuotation={{
             id: quotation.id,
             customer_id: quotation.customer_id,
