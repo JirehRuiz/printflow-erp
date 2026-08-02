@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Target, FileClock, Factory, TrendingUp, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/constants";
 
@@ -75,37 +76,45 @@ export default async function DashboardOverviewPage() {
   const stats = await getStats();
 
   const cards = [
-    { label: "New Leads", value: stats.newLeads, color: "bg-blue-50 text-blue-700", href: "/dashboard/leads" },
-    { label: "Quotes Awaiting Approval", value: stats.pendingQuotes, color: "bg-amber-50 text-amber-700", href: "/dashboard/quotations" },
-    { label: "Jobs In Production", value: stats.activeJobs, color: "bg-purple-50 text-purple-700", href: "/dashboard/production" },
-    { label: "Revenue This Month", value: formatCurrency(stats.revenueThisMonth), color: "bg-green-50 text-green-700", href: "/dashboard/invoices" },
-    { label: "Outstanding Balance", value: formatCurrency(stats.outstandingBalance), color: "bg-red-50 text-red-700", href: "/dashboard/invoices" },
+    { label: "New Leads", value: stats.newLeads, icon: Target, iconColor: "text-brand-500", href: "/dashboard/leads" },
+    { label: "Quotes Awaiting Approval", value: stats.pendingQuotes, icon: FileClock, iconColor: "text-amber-500", href: "/dashboard/quotations" },
+    { label: "Jobs In Production", value: stats.activeJobs, icon: Factory, iconColor: "text-brand-600", href: "/dashboard/production" },
+    { label: "Revenue This Month", value: formatCurrency(stats.revenueThisMonth), icon: TrendingUp, iconColor: "text-green-600", href: "/dashboard/invoices" },
+    { label: "Outstanding Balance", value: formatCurrency(stats.outstandingBalance), icon: AlertCircle, iconColor: "text-magenta-500", href: "/dashboard/invoices" },
   ];
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-brand-900">Overview</h1>
+      <h1 className="font-display text-2xl font-semibold text-ink-900">Overview</h1>
       <p className="mt-1 text-sm text-gray-500">
         A live snapshot of what's moving through the shop right now.
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {cards.map((card) => (
-          <Link
-            key={card.label}
-            href={card.href}
-            className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition hover:shadow-md"
-          >
-            <p className="text-sm font-medium text-gray-500">{card.label}</p>
-            <p className={`mt-2 inline-block rounded-lg px-2 py-1 text-2xl font-semibold ${card.color}`}>
-              {card.value}
-            </p>
-          </Link>
-        ))}
+        {cards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <Link
+              key={card.label}
+              href={card.href}
+              className="group rounded-xl border border-gray-200/70 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                  {card.label}
+                </p>
+                <Icon size={16} className={card.iconColor} strokeWidth={2} />
+              </div>
+              <p className="tabular-nums mt-2 font-display text-2xl font-semibold text-ink-900">
+                {card.value}
+              </p>
+            </Link>
+          );
+        })}
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-gray-100 bg-white shadow-sm">
+        <div className="rounded-xl border border-gray-200/70 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
             <h2 className="text-sm font-semibold text-gray-800">Recent Quotations</h2>
             <Link href="/dashboard/quotations" className="text-xs font-medium text-brand-600 hover:underline">

@@ -8,6 +8,21 @@ body {
 }
 
 body {
-  background-color: #f6f7fb;
-  color: #101d3f;
+  background-color: #f6f6f4;
+  color: #12141c;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background-color: #0EA5D6;
+  color: white;
 }

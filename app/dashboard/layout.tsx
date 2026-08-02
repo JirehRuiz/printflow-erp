@@ -1,19 +1,17 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import LogoMark from "@/components/logo-mark";
+import SidebarNav from "./sidebar-nav";
 import SignOutButton from "@/components/sign-out-button";
 
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "Overview", icon: "📊" },
-  { href: "/dashboard/leads", label: "Leads", icon: "🎯" },
-  { href: "/dashboard/customers", label: "Customers", icon: "👥" },
-  { href: "/dashboard/quotations", label: "Quotations", icon: "📄" },
-  { href: "/dashboard/jobs", label: "Job Orders", icon: "🗂️" },
-  { href: "/dashboard/production", label: "Production", icon: "🏭" },
-  { href: "/dashboard/invoices", label: "Invoices", icon: "💳" },
-  { href: "/dashboard/reports", label: "Reports", icon: "📈" },
-  { href: "/dashboard/staff", label: "Staff", icon: "🧑‍💼" },
-];
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Admin",
+  sales: "Sales",
+  production: "Production",
+  qc: "Quality Control",
+  accounts: "Accounts",
+  delivery: "Delivery",
+};
 
 export default async function DashboardLayout({
   children,
@@ -37,39 +35,26 @@ export default async function DashboardLayout({
     .single();
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-paper">
       {/* Sidebar */}
-      <aside className="flex w-64 flex-col justify-between border-r border-gray-200 bg-white px-4 py-6">
+      <aside className="flex w-64 flex-col justify-between bg-ink-950 px-4 py-6">
         <div>
-          <div className="mb-8 flex items-center gap-2 px-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500 text-sm font-bold text-white">
-              PF
-            </div>
-            <span className="text-base font-semibold text-brand-900">
+          <div className="mb-8 flex items-center gap-2.5 px-2">
+            <LogoMark size={34} />
+            <span className="font-display text-[15px] font-semibold tracking-tight text-white">
               PrintFlow
             </span>
           </div>
 
-          <nav className="space-y-1">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-brand-50 hover:text-brand-700"
-              >
-                <span>{item.icon}</span>
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <SidebarNav />
         </div>
 
-        <div className="border-t border-gray-100 pt-4">
-          <p className="px-2 text-sm font-medium text-gray-800">
+        <div className="border-t border-white/10 pt-4">
+          <p className="px-2 text-sm font-medium text-white">
             {staff?.full_name ?? user.email}
           </p>
-          <p className="px-2 text-xs uppercase tracking-wide text-gray-400">
-            {staff?.role ?? "staff"}
+          <p className="px-2 text-xs text-gray-500">
+            {staff?.role ? ROLE_LABELS[staff.role] ?? staff.role : "Staff"}
           </p>
           <div className="mt-3 px-2">
             <SignOutButton />
@@ -78,7 +63,7 @@ export default async function DashboardLayout({
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 bg-[#f6f7fb] px-8 py-6">{children}</main>
+      <main className="flex-1 px-8 py-6">{children}</main>
     </div>
   );
 }

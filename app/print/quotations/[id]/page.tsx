@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, PRODUCT_TYPES } from "@/lib/constants";
+import LogoMark from "@/components/logo-mark";
 import PrintButton from "./print-button";
 
 function productLabel(value: string) {
@@ -40,10 +41,10 @@ export default async function QuotationPrintPage({
 
       <div className="flex items-start justify-between border-b border-gray-200 pb-6">
         <div>
-          <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500 text-sm font-bold text-white">
-            PF
+          <div className="mb-2">
+            <LogoMark size={36} />
           </div>
-          <h1 className="text-lg font-semibold text-brand-900">Your Company Name</h1>
+          <h1 className="font-display text-lg font-semibold text-ink-900">Your Company Name</h1>
           <p className="text-xs text-gray-400">Digital Printing · Signage · Fabrication</p>
         </div>
         <div className="text-right">

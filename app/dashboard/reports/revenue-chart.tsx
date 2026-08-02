@@ -20,7 +20,7 @@ export default function RevenueChart({ data }: { data: { month: string; revenue:
             formatter={(value: number) => formatCurrency(value)}
             contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 13 }}
           />
-          <Bar dataKey="revenue" fill="#3b5fe0" radius={[6, 6, 0, 0]} />
+          <Bar dataKey="revenue" fill="#0EA5D6" radius={[6, 6, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
