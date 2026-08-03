@@ -19,7 +19,8 @@ export default function ProductionCard({ order }: { order: any }) {
   const [loading, setLoading] = useState(false);
 
   const currentIndex = PRODUCTION_STAGES.findIndex((s) => s.value === order.stage);
-  const nextStage = PRODUCTION_STAGES[currentIndex + 1];
+  const defaultNext = PRODUCTION_STAGES[currentIndex + 1]?.value ?? PRODUCTION_STAGES[0].value;
+  const [targetStage, setTargetStage] = useState(defaultNext);
 
   async function startWork() {
     setLoading(true);
@@ -31,27 +32,45 @@ export default function ProductionCard({ order }: { order: any }) {
     router.refresh();
   }
 
-  async function moveToNextStage() {
-    setLoading(true);
-
-    // Mark current stage completed
+  async function completeCurrent() {
     await supabase
       .from("production_orders")
       .update({ status: "completed", completed_at: new Date().toISOString() })
       .eq("id", order.id);
+  }
 
-    if (nextStage) {
-      // Create the next stage row
-      await supabase.from("production_orders").insert({
-        job_order_id: order.job_order_id,
-        stage: nextStage.value,
-        status: "not_started",
-      });
-    }
+  async function moveToStage(stage: string, markComplete: boolean) {
+    setLoading(true);
+    await completeCurrent();
+
+    await supabase.from("production_orders").insert({
+      job_order_id: order.job_order_id,
+      stage,
+      status: markComplete ? "completed" : "in_progress",
+      started_at: new Date().toISOString(),
+      completed_at: markComplete ? new Date().toISOString() : null,
+    });
 
     setLoading(false);
     router.refresh();
   }
+
+  async function skipToQC() {
+    setLoading(true);
+    await completeCurrent();
+    // Insert the "ready" stage already completed — QC unlocks immediately
+    await supabase.from("production_orders").insert({
+      job_order_id: order.job_order_id,
+      stage: "ready",
+      status: "completed",
+      started_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
+    });
+    setLoading(false);
+    router.refresh();
+  }
+
+  const isAtReady = order.stage === "ready";
 
   return (
     <div className="rounded-xl border border-gray-100 bg-white p-3 shadow-sm">
@@ -76,24 +95,57 @@ export default function ProductionCard({ order }: { order: any }) {
         <p className="text-xs text-gray-400">Machine: {order.machine_name}</p>
       )}
 
-      <div className="mt-3 flex gap-2">
+      <div className="mt-3 space-y-2">
         {order.status === "not_started" && (
           <button
             onClick={startWork}
             disabled={loading}
-            className="flex-1 rounded-lg bg-blue-50 px-2 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-60"
+            className="w-full rounded-lg bg-blue-50 px-2 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-60"
           >
             Start
           </button>
         )}
-        {order.status === "in_progress" && (
+
+        {order.status === "in_progress" && isAtReady && (
           <button
-            onClick={moveToNextStage}
+            onClick={() => moveToStage("ready", true)}
             disabled={loading}
-            className="flex-1 rounded-lg bg-green-50 px-2 py-1.5 text-xs font-semibold text-green-700 hover:bg-green-100 disabled:opacity-60"
+            className="w-full rounded-lg bg-green-50 px-2 py-1.5 text-xs font-semibold text-green-700 hover:bg-green-100 disabled:opacity-60"
           >
-            {nextStage ? `→ ${nextStage.label}` : "✓ Finish"}
+            ✓ Mark Complete
           </button>
+        )}
+
+        {order.status === "in_progress" && !isAtReady && (
+          <>
+            <div className="flex gap-1.5">
+              <select
+                value={targetStage}
+                onChange={(e) => setTargetStage(e.target.value)}
+                className="flex-1 rounded-lg border border-gray-200 px-1.5 py-1 text-xs"
+              >
+                {PRODUCTION_STAGES.filter((s) => s.value !== order.stage).map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => moveToStage(targetStage, false)}
+                disabled={loading}
+                className="rounded-lg bg-green-50 px-2 py-1 text-xs font-semibold text-green-700 hover:bg-green-100 disabled:opacity-60"
+              >
+                Move
+              </button>
+            </div>
+            <button
+              onClick={skipToQC}
+              disabled={loading}
+              className="w-full rounded-lg border border-dashed border-gray-300 px-2 py-1 text-xs font-medium text-gray-500 hover:bg-gray-50"
+            >
+              ⏭ Skip straight to QC
+            </button>
+          </>
         )}
       </div>
     </div>

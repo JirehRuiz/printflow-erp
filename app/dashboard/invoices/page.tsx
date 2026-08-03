@@ -67,12 +67,21 @@ export default async function InvoicesPage() {
                     {inv.due_date ? new Date(inv.due_date).toLocaleDateString() : "—"}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/dashboard/jobs/${inv.job_order_id}`}
-                      className="text-sm font-medium text-brand-600 hover:underline"
-                    >
-                      View Job →
-                    </Link>
+                    <div className="flex justify-end gap-3">
+                      <Link
+                        href={`/print/invoices/${inv.id}`}
+                        target="_blank"
+                        className="text-sm font-medium text-gray-500 hover:underline"
+                      >
+                        Print
+                      </Link>
+                      <Link
+                        href={`/dashboard/jobs/${inv.job_order_id}`}
+                        className="text-sm font-medium text-brand-600 hover:underline"
+                      >
+                        View Job →
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))

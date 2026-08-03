@@ -107,17 +107,27 @@ export default function InvoiceSection({
     <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-gray-800">Invoice {invoice.invoice_number}</h2>
-        <span
-          className={`rounded-full px-2 py-1 text-xs font-medium ${
-            invoice.status === "paid"
-              ? "bg-green-50 text-green-700"
-              : invoice.status === "partial"
-              ? "bg-amber-50 text-amber-700"
-              : "bg-red-50 text-red-700"
-          }`}
-        >
-          {invoice.status}
-        </span>
+        <div className="flex items-center gap-3">
+          <a
+            href={`/print/invoices/${invoice.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-medium text-gray-400 hover:text-brand-600 hover:underline"
+          >
+            Print / PDF
+          </a>
+          <span
+            className={`rounded-full px-2 py-1 text-xs font-medium ${
+              invoice.status === "paid"
+                ? "bg-green-50 text-green-700"
+                : invoice.status === "partial"
+                ? "bg-amber-50 text-amber-700"
+                : "bg-red-50 text-red-700"
+            }`}
+          >
+            {invoice.status}
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-3 text-sm">
