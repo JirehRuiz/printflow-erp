@@ -20,7 +20,7 @@ export default function ProductionCard({ order }: { order: any }) {
 
   const currentIndex = PRODUCTION_STAGES.findIndex((s) => s.value === order.stage);
   const defaultNext = PRODUCTION_STAGES[currentIndex + 1]?.value ?? PRODUCTION_STAGES[0].value;
-  const [targetStage, setTargetStage] = useState(defaultNext);
+  const [targetStage, setTargetStage] = useState<string>(defaultNext);
 
   async function startWork() {
     setLoading(true);
