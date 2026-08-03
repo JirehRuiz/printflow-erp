@@ -1,8 +1,12 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { formatCurrency } from "@/lib/constants";
+import { formatCurrency, PRODUCT_TYPES } from "@/lib/constants";
 import LogoMark from "@/components/logo-mark";
 import PrintButton from "./print-button";
+
+function productLabel(value: string) {
+  return PRODUCT_TYPES.find((p) => p.value === value)?.label ?? value;
+}
 
 export default async function InvoicePrintPage({
   params,
@@ -14,21 +18,31 @@ export default async function InvoicePrintPage({
   const { data: invoice } = await supabase
     .from("invoices")
     .select(
-      "invoice_number, status, subtotal, tax_amount, total, amount_paid, due_date, created_at, job_orders(job_number), customers(name, company_name, phone, email, address)"
+      "invoice_number, status, subtotal, tax_amount, total, amount_paid, due_date, created_at, job_orders(job_number, quotation_id), customers(name, company_name, phone, email, address)"
     )
     .eq("id", params.id)
     .single();
 
   if (!invoice) notFound();
 
-  const { data: payments } = await supabase
-    .from("payments")
-    .select("amount, method, reference_no, paid_at")
-    .eq("invoice_id", params.id)
-    .order("paid_at", { ascending: true });
+  const jobOrder = invoice.job_orders as any;
+
+  const [{ data: payments }, { data: items }] = await Promise.all([
+    supabase
+      .from("payments")
+      .select("amount, method, reference_no, paid_at")
+      .eq("invoice_id", params.id)
+      .order("paid_at", { ascending: true }),
+    jobOrder?.quotation_id
+      ? supabase
+          .from("quotation_items")
+          .select("*")
+          .eq("quotation_id", jobOrder.quotation_id)
+          .order("sort_order")
+      : Promise.resolve({ data: [] as any[] }),
+  ]);
 
   const customer = invoice.customers as any;
-  const jobOrder = invoice.job_orders as any;
   const balance = invoice.total - invoice.amount_paid;
 
   const statusColors: Record<string, string> = {
@@ -83,6 +97,41 @@ export default async function InvoicePrintPage({
         {customer?.phone && <p className="text-sm text-gray-500">{customer.phone}</p>}
         {customer?.email && <p className="text-sm text-gray-500">{customer.email}</p>}
       </div>
+
+      {items && items.length > 0 && (
+        <table className="mt-6 w-full border-collapse text-sm">
+          <thead>
+            <tr className="border-b-2 border-gray-800 text-left text-xs uppercase text-gray-500">
+              <th className="py-2">Description</th>
+              <th className="py-2">Type</th>
+              <th className="py-2 text-right">Qty</th>
+              <th className="py-2 text-right">Unit Price</th>
+              <th className="py-2 text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item: any) => (
+              <tr key={item.id} className="border-b border-gray-100">
+                <td className="py-2">
+                  <p className="font-medium">{item.description}</p>
+                  {item.material && (
+                    <p className="text-xs text-gray-400">
+                      {item.material}
+                      {item.width && item.height ? ` · ${item.width}x${item.height}` : ""}
+                    </p>
+                  )}
+                </td>
+                <td className="py-2 text-gray-500">{productLabel(item.product_type)}</td>
+                <td className="py-2 text-right">
+                  {item.qty} {item.unit}
+                </td>
+                <td className="py-2 text-right">{formatCurrency(item.unit_price)}</td>
+                <td className="py-2 text-right font-medium">{formatCurrency(item.total_price)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
 
       <div className="mt-6 flex justify-end">
         <div className="w-72 space-y-1 text-sm">
