@@ -10,8 +10,8 @@ type JobOption = {
   job_number: string;
   status: string;
   customer_id: string;
-  customers: { name: string } | null;
-  quotations: { total: number; subtotal: number; tax_amount: number } | null;
+  customers: { name: string }[] | null;
+  quotations: { total: number; subtotal: number; tax_amount: number }[] | null;
 };
 
 export default function NewInvoiceForm({ jobOrders }: { jobOrders: JobOption[] }) {
@@ -31,10 +31,11 @@ export default function NewInvoiceForm({ jobOrders }: { jobOrders: JobOption[] }
   function handleSelectJob(id: string) {
     setJobId(id);
     const job = jobOrders.find((j) => j.id === id);
-    if (job?.quotations) {
-      setSubtotal(String(job.quotations.subtotal));
-      setTaxAmount(String(job.quotations.tax_amount));
-      setTotal(String(job.quotations.total));
+    const quotation = job?.quotations?.[0];
+    if (quotation) {
+      setSubtotal(String(quotation.subtotal));
+      setTaxAmount(String(quotation.tax_amount));
+      setTotal(String(quotation.total));
     } else {
       setSubtotal("");
       setTaxAmount("");
@@ -90,7 +91,7 @@ export default function NewInvoiceForm({ jobOrders }: { jobOrders: JobOption[] }
           <option value="">Select a job order...</option>
           {jobOrders.map((job) => (
             <option key={job.id} value={job.id}>
-              {job.job_number} — {job.customers?.name ?? "Unknown"} ({job.status.replace("_", " ")})
+              {job.job_number} — {job.customers?.[0]?.name ?? "Unknown"} ({job.status.replace("_", " ")})
             </option>
           ))}
         </select>
