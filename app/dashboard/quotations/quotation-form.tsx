@@ -15,6 +15,7 @@ type CatalogItem = {
   material: string | null;
   unit: string;
   selling_price: number;
+  cost_price?: number;
 };
 
 type LineItem = {
@@ -27,6 +28,7 @@ type LineItem = {
   qty: string;
   unit_price: string;
   catalog_item_id: string;
+  cost_price: string;
 };
 
 const emptyItem = (): LineItem => ({
@@ -39,6 +41,7 @@ const emptyItem = (): LineItem => ({
   qty: "1",
   unit_price: "0",
   catalog_item_id: "",
+  cost_price: "0",
 });
 
 type ExistingQuotation = {
@@ -54,10 +57,12 @@ type ExistingQuotation = {
 export default function QuotationForm({
   customers,
   catalogItems = [],
+  canSeeCost = false,
   existingQuotation,
 }: {
   customers: Customer[];
   catalogItems?: CatalogItem[];
+  canSeeCost?: boolean;
   existingQuotation?: ExistingQuotation;
 }) {
   const router = useRouter();
@@ -117,6 +122,9 @@ export default function QuotationForm({
               material: match.material ?? "",
               unit: match.unit,
               unit_price: String(match.selling_price),
+              // Snapshot the cost at quote time — never shown in this UI,
+              // used only for internal Profit & Loss reporting later.
+              cost_price: String(match.cost_price ?? 0),
             }
           : item
       )
@@ -183,6 +191,7 @@ export default function QuotationForm({
         unit: item.unit,
         qty: parseFloat(item.qty) || 0,
         unit_price: parseFloat(item.unit_price) || 0,
+        cost_price: parseFloat(item.cost_price) || 0,
         sort_order: index,
       }));
 
@@ -231,6 +240,7 @@ export default function QuotationForm({
       unit: item.unit,
       qty: parseFloat(item.qty) || 0,
       unit_price: parseFloat(item.unit_price) || 0,
+      cost_price: parseFloat(item.cost_price) || 0,
       sort_order: index,
     }));
 
@@ -375,7 +385,11 @@ export default function QuotationForm({
                 </div>
               </div>
 
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-6">
+              <div
+                className={`mt-3 grid grid-cols-2 gap-3 ${
+                  canSeeCost ? "sm:grid-cols-7" : "sm:grid-cols-6"
+                }`}
+              >
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-500">Width</label>
                   <input
@@ -418,6 +432,21 @@ export default function QuotationForm({
                     className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
                   />
                 </div>
+                {canSeeCost && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-magenta-600">
+                      Cost Price
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={item.cost_price}
+                      onChange={(e) => updateItem(index, "cost_price", e.target.value)}
+                      placeholder="0.00"
+                      className="w-full rounded-lg border border-magenta-500/30 bg-magenta-50/30 px-2 py-1.5 text-sm"
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-500">Line Total</label>
                   <div className="rounded-lg bg-white px-2 py-1.5 text-sm font-medium text-gray-700">

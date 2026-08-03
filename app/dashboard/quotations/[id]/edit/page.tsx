@@ -23,9 +23,21 @@ export default async function EditQuotationPage({
     redirect(`/dashboard/quotations/${params.id}`);
   }
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: currentStaff } = await supabase
+    .from("staff")
+    .select("role")
+    .eq("id", user?.id)
+    .single();
+
+  const canSeeCost = ["admin", "accounts"].includes(currentStaff?.role ?? "");
+
   const { data: items } = await supabase
     .from("quotation_items")
-    .select("product_type, description, material, width, height, unit, qty, unit_price")
+    .select("product_type, description, material, width, height, unit, qty, unit_price, cost_price")
     .eq("quotation_id", params.id)
     .order("sort_order");
 
@@ -36,7 +48,7 @@ export default async function EditQuotationPage({
 
   const { data: catalogItems } = await supabase
     .from("catalog_items")
-    .select("id, product_type, name, description, material, unit, selling_price")
+    .select("id, product_type, name, description, material, unit, selling_price, cost_price")
     .eq("is_active", true)
     .order("name");
 
@@ -50,6 +62,7 @@ export default async function EditQuotationPage({
     qty: item.qty.toString(),
     unit_price: item.unit_price.toString(),
     catalog_item_id: "",
+    cost_price: (item.cost_price ?? 0).toString(),
   }));
 
   return (
@@ -63,6 +76,7 @@ export default async function EditQuotationPage({
         <QuotationForm
           customers={customers ?? []}
           catalogItems={catalogItems ?? []}
+          canSeeCost={canSeeCost}
           existingQuotation={{
             id: quotation.id,
             customer_id: quotation.customer_id,

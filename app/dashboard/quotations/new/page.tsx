@@ -4,11 +4,23 @@ import QuotationForm from "../quotation-form";
 export default async function NewQuotationPage() {
   const supabase = createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: currentStaff } = await supabase
+    .from("staff")
+    .select("role")
+    .eq("id", user?.id)
+    .single();
+
+  const canSeeCost = ["admin", "accounts"].includes(currentStaff?.role ?? "");
+
   const [{ data: customers }, { data: catalogItems }] = await Promise.all([
     supabase.from("customers").select("id, name, company_name").order("name"),
     supabase
       .from("catalog_items")
-      .select("id, product_type, name, description, material, unit, selling_price")
+      .select("id, product_type, name, description, material, unit, selling_price, cost_price")
       .eq("is_active", true)
       .order("name"),
   ]);
@@ -21,7 +33,11 @@ export default async function NewQuotationPage() {
       </p>
 
       <div className="mt-6">
-        <QuotationForm customers={customers ?? []} catalogItems={catalogItems ?? []} />
+        <QuotationForm
+          customers={customers ?? []}
+          catalogItems={catalogItems ?? []}
+          canSeeCost={canSeeCost}
+        />
       </div>
     </div>
   );
