@@ -33,12 +33,14 @@ export default function CatalogTable({
   items,
   productTypes,
   canSeeCost,
-  isAdmin,
+  canEdit,
+  canDelete,
 }: {
   items: CatalogItem[];
   productTypes: readonly ProductType[];
   canSeeCost: boolean;
-  isAdmin: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -153,7 +155,7 @@ export default function CatalogTable({
           ))}
         </select>
 
-        {isAdmin && !isFormOpen && (
+        {canEdit && !isFormOpen && (
           <button
             onClick={startNew}
             className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-ink-950 hover:bg-brand-600 hover:text-white"
@@ -229,16 +231,18 @@ export default function CatalogTable({
                 ))}
               </select>
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-gray-600">Cost Price</label>
-              <input
-                type="number"
-                step="0.01"
-                value={form.cost_price}
-                onChange={(e) => setForm((f) => ({ ...f, cost_price: e.target.value }))}
-                className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
-              />
-            </div>
+            {canSeeCost && (
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-600">Cost Price</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={form.cost_price}
+                  onChange={(e) => setForm((f) => ({ ...f, cost_price: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+                />
+              </div>
+            )}
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-600">Selling Price</label>
               <input
@@ -285,7 +289,7 @@ export default function CatalogTable({
               <th className="px-4 py-3">Selling Price</th>
               {canSeeCost && <th className="px-4 py-3">Margin</th>}
               <th className="px-4 py-3">Status</th>
-              {isAdmin && <th className="px-4 py-3"></th>}
+              {canEdit && <th className="px-4 py-3"></th>}
             </tr>
           </thead>
           <tbody>
@@ -328,7 +332,7 @@ export default function CatalogTable({
                       </td>
                     )}
                     <td className="px-4 py-3">
-                      {isAdmin ? (
+                      {canEdit ? (
                         <button
                           onClick={() => toggleActive(item)}
                           className={`rounded-full px-2 py-1 text-xs font-medium ${
@@ -351,7 +355,7 @@ export default function CatalogTable({
                         </span>
                       )}
                     </td>
-                    {isAdmin && (
+                    {canEdit && (
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
                           <button
@@ -360,12 +364,14 @@ export default function CatalogTable({
                           >
                             Edit
                           </button>
-                          <button
-                            onClick={() => remove(item)}
-                            className="text-xs font-medium text-magenta-600 hover:underline"
-                          >
-                            Delete
-                          </button>
+                          {canDelete && (
+                            <button
+                              onClick={() => remove(item)}
+                              className="text-xs font-medium text-magenta-600 hover:underline"
+                            >
+                              Delete
+                            </button>
+                          )}
                         </div>
                       </td>
                     )}

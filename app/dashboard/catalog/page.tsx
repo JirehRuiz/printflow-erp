@@ -17,7 +17,10 @@ export default async function CatalogPage() {
 
   // Cost price / margin is sensitive — only admin and accounts see it.
   const canSeeCost = ["admin", "accounts"].includes(currentStaff?.role ?? "");
-  const isAdmin = currentStaff?.role === "admin";
+  // Sales can add/edit catalog items (pricing), but not delete them —
+  // deleting could break historical quotations that reference an item.
+  const canEdit = ["admin", "sales"].includes(currentStaff?.role ?? "");
+  const canDelete = currentStaff?.role === "admin";
 
   const { data: items } = await supabase
     .from("catalog_items")
@@ -37,9 +40,16 @@ export default async function CatalogPage() {
           items={items ?? []}
           productTypes={PRODUCT_TYPES}
           canSeeCost={canSeeCost}
-          isAdmin={isAdmin}
+          canEdit={canEdit}
+          canDelete={canDelete}
         />
       </div>
+
+      {canEdit && !canDelete && (
+        <p className="mt-4 text-xs text-gray-400">
+          You can add and edit catalog items. Only admins can delete an item or see cost/margin.
+        </p>
+      )}
     </div>
   );
 }
