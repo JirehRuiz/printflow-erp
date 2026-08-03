@@ -327,9 +327,9 @@ begin
   update public.invoices
   set amount_paid = v_total_paid,
       status = case
-        when v_total_paid <= 0 then 'unpaid'
-        when v_total_paid >= v_invoice_total then 'paid'
-        else 'partial'
+        when v_total_paid <= 0 then 'unpaid'::invoice_status
+        when v_total_paid >= v_invoice_total then 'paid'::invoice_status
+        else 'partial'::invoice_status
       end,
       updated_at = now()
   where id = v_invoice_id;
