@@ -97,6 +97,25 @@ export default function QuotationForm({
   const taxAmount = taxable * ((parseFloat(taxPercent) || 0) / 100);
   const total = taxable + taxAmount;
 
+  // Margin figures — computed regardless of role, but only rendered when
+  // canSeeCost is true (never sent anywhere Sales-visible in the JSX below).
+  const totalCost = useMemo(
+    () =>
+      items.reduce(
+        (sum, item) => sum + (parseFloat(item.qty) || 0) * (parseFloat(item.cost_price) || 0),
+        0
+      ),
+    [items]
+  );
+  const grossProfit = taxable - totalCost;
+  const marginPct = taxable > 0 ? Math.round((grossProfit / taxable) * 100) : 0;
+
+  function marginColor(pct: number) {
+    if (pct >= 40) return "text-green-700";
+    if (pct >= 20) return "text-amber-600";
+    return "text-magenta-600";
+  }
+
   function updateItem(index: number, field: keyof LineItem, value: string) {
     setItems((prev) =>
       prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
@@ -454,6 +473,20 @@ export default function QuotationForm({
                       (parseFloat(item.qty) || 0) * (parseFloat(item.unit_price) || 0)
                     )}
                   </div>
+                  {canSeeCost &&
+                    (() => {
+                      const qty = parseFloat(item.qty) || 0;
+                      const unitPrice = parseFloat(item.unit_price) || 0;
+                      const costPrice = parseFloat(item.cost_price) || 0;
+                      const lineRevenue = qty * unitPrice;
+                      const lineProfit = lineRevenue - qty * costPrice;
+                      const linePct = lineRevenue > 0 ? Math.round((lineProfit / lineRevenue) * 100) : 0;
+                      return (
+                        <p className={`mt-1 text-xs font-medium ${marginColor(linePct)}`}>
+                          {formatCurrency(lineProfit)} margin ({linePct}%)
+                        </p>
+                      );
+                    })()}
                 </div>
                 <div className="flex items-end">
                   {items.length > 1 && (
@@ -512,6 +545,28 @@ export default function QuotationForm({
               <span>{formatCurrency(total)}</span>
             </div>
           </div>
+
+          {canSeeCost && (
+            <div className="mt-4 rounded-lg border border-magenta-500/20 bg-magenta-50/30 p-3">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-magenta-600">
+                Internal — Margin
+              </p>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between text-gray-500">
+                  <span>Total Cost</span>
+                  <span>{formatCurrency(totalCost)}</span>
+                </div>
+                <div className="flex justify-between font-medium text-gray-700">
+                  <span>Gross Profit</span>
+                  <span>{formatCurrency(grossProfit)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Margin</span>
+                  <span className={`font-semibold ${marginColor(marginPct)}`}>{marginPct}%</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {error && (
             <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>
