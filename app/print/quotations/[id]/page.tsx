@@ -47,7 +47,7 @@ export default async function QuotationPrintPage({
           <h1 className="font-display text-lg font-semibold text-ink-900">
             Skylar Advertising FZE-LLC
           </h1>
-          <p className="text-xs text-gray-400">Sincerity. Creativity. Quality Delivered.</p>
+          <p className="text-xs text-gray-400">Digital Printing · Signage · Fabrication</p>
         </div>
         <div className="text-right">
           <h2 className="text-2xl font-bold text-brand-900">QUOTATION</h2>

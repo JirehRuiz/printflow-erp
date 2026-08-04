@@ -3,36 +3,34 @@ type Props = {
 };
 
 /**
- * The logo file (public/logo.png) has an opaque white background and
- * includes icon + wordmark + tagline in one wide image. We treat it
- * differently depending on where it's placed:
- *  - sidebar: cropped to just icon+wordmark (tagline unreadable that small
- *    anyway), on a white card so it doesn't clash with the dark sidebar.
- *  - login: full lockup including tagline, on a white card on the dark bg.
- *  - print: used directly — the print page background is already white.
+ * Two pre-cropped assets (both opaque white background, no CSS clipping):
+ *  - logo-compact.png: icon + "SKYLAR ADVERTISING" only, no tagline —
+ *    used in the sidebar where space is tight.
+ *  - logo-full.png: icon + wordmark + tagline — used on the login screen
+ *    and printed documents where there's room to show it in full.
+ * Both are placed on a white card wherever the surrounding surface is dark
+ * (sidebar, login), since the source art has an opaque white background.
  */
 export default function CompanyLogo({ variant }: Props) {
   if (variant === "print") {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src="/logo.png" alt="Skylar Advertising" className="h-14 w-auto" />;
+    return <img src="/logo-full.png" alt="Skylar Advertising" className="h-16 w-auto" />;
   }
 
   if (variant === "login") {
     return (
-      <div className="inline-block rounded-xl bg-white p-4 shadow-lg">
+      <div className="inline-flex justify-center rounded-xl bg-white p-4 shadow-lg">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="Skylar Advertising" className="w-56 max-w-full" />
+        <img src="/logo-full.png" alt="Skylar Advertising" className="w-60 max-w-full" />
       </div>
     );
   }
 
-  // sidebar: crop out the tagline band, keep just the icon + wordmark
+  // sidebar
   return (
-    <div className="w-full overflow-hidden rounded-lg bg-white px-3 py-2">
-      <div className="h-[52px] overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="Skylar Advertising" className="w-full" />
-      </div>
+    <div className="flex justify-center rounded-lg bg-white px-3 py-3">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/logo-compact.png" alt="Skylar Advertising" className="w-full" />
     </div>
   );
 }
