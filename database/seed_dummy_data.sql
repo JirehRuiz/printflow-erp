@@ -126,7 +126,7 @@ begin
   -- QUOTATION 3 — Fatima, exhibition stand, approved -> in production
   -- =========================================================================
   insert into quotations (lead_id, customer_id, status, valid_until, subtotal, discount, tax_percent, tax_amount, total, terms, approved_at, approved_by_name, created_at)
-  values (lead_fatima, cust_fatima, 'approved', current_date + 25, 15000, 500, 5, 725, 15225, '60% advance to begin fabrication.', now() - interval '10 days', 'Fatima Hassan', now() - interval '14 days')
+  values (lead_fatima, cust_fatima, 'approved', current_date + 25, 15000, 500, 5, 725, 15225, '50% advance to begin fabrication.', now() - interval '10 days', 'Fatima Hassan', now() - interval '14 days')
   returning id into quote3;
 
   insert into quotation_items (quotation_id, product_type, description, material, unit, qty, unit_price, sort_order) values

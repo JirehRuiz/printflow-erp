@@ -68,6 +68,7 @@ export default async function InvoicePrintPage({
             Skylar Advertising FZE-LLC
           </h1>
           <p className="text-xs text-gray-400">Digital Printing · Signage · Fabrication</p>
+          <p className="text-xs text-gray-400">+971 55 251 7225</p>
         </div>
         <div className="text-right">
           <h2 className="text-2xl font-bold text-ink-900">INVOICE</h2>
