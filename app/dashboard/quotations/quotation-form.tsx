@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { PRODUCT_TYPES, UNITS, formatCurrency } from "@/lib/constants";
+import RollCalculator, { RollCalculatorItem } from "./roll-calculator";
 
 type Customer = { id: string; name: string; company_name: string | null };
 
@@ -156,6 +157,27 @@ export default function QuotationForm({
 
   function removeItem(index: number) {
     setItems((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function addItemsFromCalculator(calcItems: RollCalculatorItem[]) {
+    const newItems: LineItem[] = calcItems.map((ci) => ({
+      product_type: "sticker_printing",
+      description: ci.description,
+      material: "",
+      width: "",
+      height: "",
+      unit: ci.unit,
+      qty: ci.qty,
+      unit_price: ci.unit_price,
+      catalog_item_id: "",
+      cost_price: ci.cost_price,
+    }));
+    setItems((prev) => {
+      // Drop a single still-blank starter row so we don't leave an empty
+      // line item sitting above the calculator's results.
+      const withoutBlank = prev.filter((i) => i.description.trim() !== "");
+      return [...withoutBlank, ...newItems];
+    });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -315,6 +337,8 @@ export default function QuotationForm({
           />
         </div>
       </div>
+
+      <RollCalculator canSeeCost={canSeeCost} onAddItems={addItemsFromCalculator} />
 
       {/* Line items */}
       <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
