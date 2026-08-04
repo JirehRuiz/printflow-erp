@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import LogoMark from "@/components/logo-mark";
+import CompanyLogo from "@/components/company-logo";
 import SidebarNav from "./sidebar-nav";
 import SignOutButton from "@/components/sign-out-button";
 
@@ -39,11 +39,8 @@ export default async function DashboardLayout({
       {/* Sidebar */}
       <aside className="flex w-64 flex-col justify-between bg-ink-950 px-4 py-6">
         <div>
-          <div className="mb-8 flex items-center gap-2.5 px-2">
-            <LogoMark size={34} />
-            <span className="font-display text-[15px] font-semibold tracking-tight text-white">
-              PrintFlow
-            </span>
+          <div className="mb-8">
+            <CompanyLogo variant="sidebar" />
           </div>
 
           <SidebarNav />

@@ -15,8 +15,8 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "PrintFlow ERP",
-  description: "Internal ERP for printing, signage, acrylic & fabrication workflows",
+  title: "PrintFlow ERP — Skylar Advertising",
+  description: "Internal ERP for Skylar Advertising FZE-LLC — printing, signage, acrylic & fabrication workflows",
 };
 
 export default function RootLayout({

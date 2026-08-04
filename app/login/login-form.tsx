@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import LogoMark from "@/components/logo-mark";
+import CompanyLogo from "@/components/company-logo";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -48,11 +48,10 @@ export default function LoginForm() {
 
       <div className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-ink-900 p-8 shadow-2xl">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center">
-            <LogoMark size={52} />
+          <div className="mb-5 flex justify-center">
+            <CompanyLogo variant="login" />
           </div>
-          <h1 className="font-display text-xl font-semibold text-white">PrintFlow ERP</h1>
-          <p className="mt-1 text-sm text-gray-400">Sign in to your workspace</p>
+          <p className="text-sm text-gray-400">Sign in to your PrintFlow workspace</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
