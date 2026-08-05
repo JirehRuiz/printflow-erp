@@ -13,6 +13,8 @@ import {
   LineChart,
   UserCog,
   Tags,
+  Package,
+  Truck,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -22,6 +24,8 @@ const NAV_ITEMS = [
   { href: "/dashboard/quotations", label: "Quotations", icon: FileText },
   { href: "/dashboard/jobs", label: "Job Orders", icon: Boxes },
   { href: "/dashboard/production", label: "Production", icon: Factory },
+  { href: "/dashboard/inventory", label: "Inventory", icon: Package },
+  { href: "/dashboard/suppliers", label: "Suppliers", icon: Truck },
   { href: "/dashboard/invoices", label: "Invoices", icon: Wallet },
   { href: "/dashboard/catalog", label: "Catalog", icon: Tags },
   { href: "/dashboard/reports", label: "Reports", icon: LineChart },

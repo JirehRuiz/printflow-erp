@@ -21,12 +21,18 @@ export default async function CatalogPage() {
   // deleting could break historical quotations that reference an item.
   const canEdit = ["admin", "sales"].includes(currentStaff?.role ?? "");
   const canDelete = currentStaff?.role === "admin";
+  // Linking a catalog item to inventory (for auto stock deduction) is an
+  // operational/inventory decision, kept separate from pricing edit rights.
+  const isAdmin = currentStaff?.role === "admin";
 
-  const { data: items } = await supabase
-    .from("catalog_items")
-    .select("*")
-    .order("product_type")
-    .order("name");
+  const [{ data: items }, { data: inventoryItems }] = await Promise.all([
+    supabase.from("catalog_items").select("*").order("product_type").order("name"),
+    supabase
+      .from("inventory_items")
+      .select("id, name, unit")
+      .eq("is_active", true)
+      .order("name"),
+  ]);
 
   return (
     <div>
@@ -39,15 +45,18 @@ export default async function CatalogPage() {
         <CatalogTable
           items={items ?? []}
           productTypes={PRODUCT_TYPES}
+          inventoryItems={inventoryItems ?? []}
           canSeeCost={canSeeCost}
           canEdit={canEdit}
           canDelete={canDelete}
+          isAdmin={isAdmin}
         />
       </div>
 
       {canEdit && !canDelete && (
         <p className="mt-4 text-xs text-gray-400">
-          You can add and edit catalog items. Only admins can delete an item or see cost/margin.
+          You can add and edit catalog items. Only admins can delete an item, see cost/margin, or
+          link an item to inventory for auto stock deduction.
         </p>
       )}
     </div>

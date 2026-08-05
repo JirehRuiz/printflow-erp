@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { UNITS } from "@/lib/constants";
 
 type ProductType = { value: string; label: string };
+type InventoryItemOption = { id: string; name: string; unit: string };
 
 type CatalogItem = {
   id: string;
@@ -17,6 +18,8 @@ type CatalogItem = {
   cost_price: number;
   selling_price: number;
   is_active: boolean;
+  inventory_item_id: string | null;
+  consumption_per_unit: number | null;
 };
 
 const emptyForm = {
@@ -27,20 +30,26 @@ const emptyForm = {
   unit: "pcs",
   cost_price: "0",
   selling_price: "0",
+  inventory_item_id: "",
+  consumption_per_unit: "0",
 };
 
 export default function CatalogTable({
   items,
   productTypes,
+  inventoryItems,
   canSeeCost,
   canEdit,
   canDelete,
+  isAdmin,
 }: {
   items: CatalogItem[];
   productTypes: readonly ProductType[];
+  inventoryItems: InventoryItemOption[];
   canSeeCost: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  isAdmin: boolean;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -72,6 +81,8 @@ export default function CatalogTable({
       unit: item.unit,
       cost_price: String(item.cost_price),
       selling_price: String(item.selling_price),
+      inventory_item_id: item.inventory_item_id ?? "",
+      consumption_per_unit: String(item.consumption_per_unit ?? 0),
     });
   }
 
@@ -95,7 +106,7 @@ export default function CatalogTable({
     setError(null);
     setLoading(true);
 
-    const payload = {
+    const payload: Record<string, any> = {
       product_type: form.product_type,
       name: form.name,
       description: form.description,
@@ -104,6 +115,12 @@ export default function CatalogTable({
       cost_price: parseFloat(form.cost_price) || 0,
       selling_price: parseFloat(form.selling_price) || 0,
     };
+
+    // Only admins can set/change the inventory linkage
+    if (isAdmin) {
+      payload.inventory_item_id = form.inventory_item_id || null;
+      payload.consumption_per_unit = parseFloat(form.consumption_per_unit) || 0;
+    }
 
     const { error } = editingId
       ? await supabase.from("catalog_items").update(payload).eq("id", editingId)
@@ -255,6 +272,52 @@ export default function CatalogTable({
             </div>
           </div>
 
+          {isAdmin && (
+            <div className="mt-3 rounded-lg border border-dashed border-gray-200 p-3">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Inventory Auto-Deduction (optional)
+              </p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                    Linked Inventory Item
+                  </label>
+                  <select
+                    value={form.inventory_item_id}
+                    onChange={(e) => setForm((f) => ({ ...f, inventory_item_id: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+                  >
+                    <option value="">Not linked — no auto-deduction</option>
+                    {inventoryItems.map((inv) => (
+                      <option key={inv.id} value={inv.id}>
+                        {inv.name} ({inv.unit})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-600">
+                    Consumption per {form.unit || "unit"}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    value={form.consumption_per_unit}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, consumption_per_unit: e.target.value }))
+                    }
+                    placeholder="e.g. 0.05"
+                    className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+                  />
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-gray-400">
+                In the inventory item's own unit. E.g. if this sells per "pcs" and the linked
+                inventory item is tracked in "sqm", enter how many sqm one pcs uses.
+              </p>
+            </div>
+          )}
+
           {error && (
             <p className="mt-3 rounded-lg bg-magenta-50 px-3 py-2 text-xs text-magenta-600">{error}</p>
           )}
@@ -288,6 +351,7 @@ export default function CatalogTable({
               {canSeeCost && <th className="px-4 py-3">Cost</th>}
               <th className="px-4 py-3">Selling Price</th>
               {canSeeCost && <th className="px-4 py-3">Margin</th>}
+              {isAdmin && <th className="px-4 py-3">Inventory</th>}
               <th className="px-4 py-3">Status</th>
               {canEdit && <th className="px-4 py-3"></th>}
             </tr>
@@ -329,6 +393,17 @@ export default function CatalogTable({
                         >
                           {margin}%
                         </span>
+                      </td>
+                    )}
+                    {isAdmin && (
+                      <td className="px-4 py-3">
+                        {item.inventory_item_id ? (
+                          <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
+                            🔗 {item.consumption_per_unit}/{item.unit}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-300">—</span>
+                        )}
                       </td>
                     )}
                     <td className="px-4 py-3">
@@ -380,7 +455,7 @@ export default function CatalogTable({
               })
             ) : (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
+                <td colSpan={10} className="px-4 py-8 text-center text-gray-400">
                   No catalog items yet.
                 </td>
               </tr>

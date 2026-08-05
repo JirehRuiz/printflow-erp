@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Target, FileClock, Factory, TrendingUp, AlertCircle } from "lucide-react";
+import { Target, FileClock, Factory, TrendingUp, AlertCircle, Package } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/constants";
 
@@ -18,6 +18,7 @@ async function getStats() {
     paidThisMonth,
     recentQuotations,
     recentJobs,
+    inventoryItems,
   ] = await Promise.all([
     supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", "new"),
     supabase.from("quotations").select("id", { count: "exact", head: true }).eq("status", "sent"),
@@ -37,7 +38,15 @@ async function getStats() {
       .select("id, job_number, status, due_date, customers(name)")
       .order("created_at", { ascending: false })
       .limit(5),
+    supabase
+      .from("inventory_items")
+      .select("quantity_on_hand, reorder_level")
+      .eq("is_active", true),
   ]);
+
+  const lowStockCount = (inventoryItems.data ?? []).filter(
+    (i) => i.quantity_on_hand <= i.reorder_level
+  ).length;
 
   const outstandingBalance = (outstandingInvoices.data ?? []).reduce(
     (sum, inv) => sum + (inv.total - inv.amount_paid),
@@ -51,6 +60,7 @@ async function getStats() {
     activeJobs: jobsInProduction.count ?? 0,
     outstandingBalance,
     revenueThisMonth,
+    lowStockCount,
     recentQuotations: recentQuotations.data ?? [],
     recentJobs: recentJobs.data ?? [],
   };
@@ -81,6 +91,7 @@ export default async function DashboardOverviewPage() {
     { label: "Jobs In Production", value: stats.activeJobs, icon: Factory, iconColor: "text-brand-600", href: "/dashboard/production" },
     { label: "Revenue This Month", value: formatCurrency(stats.revenueThisMonth), icon: TrendingUp, iconColor: "text-green-600", href: "/dashboard/invoices" },
     { label: "Outstanding Balance", value: formatCurrency(stats.outstandingBalance), icon: AlertCircle, iconColor: "text-magenta-500", href: "/dashboard/invoices" },
+    { label: "Low Stock Items", value: stats.lowStockCount, icon: Package, iconColor: "text-magenta-500", href: "/dashboard/inventory" },
   ];
 
   return (
@@ -90,7 +101,7 @@ export default async function DashboardOverviewPage() {
         A live snapshot of what's moving through the shop right now.
       </p>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {cards.map((card) => {
           const Icon = card.icon;
           return (

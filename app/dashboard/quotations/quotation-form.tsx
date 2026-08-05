@@ -233,6 +233,7 @@ export default function QuotationForm({
         qty: parseFloat(item.qty) || 0,
         unit_price: parseFloat(item.unit_price) || 0,
         cost_price: parseFloat(item.cost_price) || 0,
+        catalog_item_id: item.catalog_item_id || null,
         sort_order: index,
       }));
 
@@ -282,6 +283,7 @@ export default function QuotationForm({
       qty: parseFloat(item.qty) || 0,
       unit_price: parseFloat(item.unit_price) || 0,
       cost_price: parseFloat(item.cost_price) || 0,
+      catalog_item_id: item.catalog_item_id || null,
       sort_order: index,
     }));
 
