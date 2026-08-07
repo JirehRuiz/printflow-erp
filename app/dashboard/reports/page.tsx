@@ -2,9 +2,69 @@ import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/constants";
 import RevenueChart from "./revenue-chart";
 import ProfitLossChart from "./profit-loss-chart";
+import WeeklySnapshotCard from "./weekly-snapshot-card";
 
 function monthLabel(date: Date) {
   return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+}
+
+function dayLabel(date: Date) {
+  return date.toLocaleDateString("en-US", { weekday: "short" });
+}
+
+async function getWeeklySnapshot() {
+  const supabase = createClient();
+
+  const now = new Date();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+
+  const sevenDaysAgo = new Date(startOfToday);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6); // include today = 7 days total
+
+  const fourteenDaysAgo = new Date(startOfToday);
+  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 13);
+
+  const [leadsRes, quotesRes, paymentsRes] = await Promise.all([
+    supabase.from("leads").select("created_at").gte("created_at", fourteenDaysAgo.toISOString()),
+    supabase
+      .from("quotations")
+      .select("created_at")
+      .gte("created_at", fourteenDaysAgo.toISOString()),
+    supabase.from("payments").select("amount, paid_at").gte("paid_at", sevenDaysAgo.toISOString()),
+  ]);
+
+  function weekOverWeek(rows: { created_at: string }[]) {
+    let thisWeek = 0;
+    let lastWeek = 0;
+    rows.forEach((r) => {
+      const d = new Date(r.created_at);
+      if (d >= sevenDaysAgo) thisWeek++;
+      else if (d >= fourteenDaysAgo) lastWeek++;
+    });
+    const pct = lastWeek > 0 ? Math.round(((thisWeek - lastWeek) / lastWeek) * 100) : null;
+    return { thisWeek, pct };
+  }
+
+  const leadsStat = weekOverWeek(leadsRes.data ?? []);
+  const quotesStat = weekOverWeek(quotesRes.data ?? []);
+
+  // Daily revenue bars for the last 7 days
+  const days: { label: string; amount: number }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(startOfToday);
+    d.setDate(d.getDate() - i);
+    days.push({ label: dayLabel(d), amount: 0 });
+  }
+  (paymentsRes.data ?? []).forEach((p) => {
+    const d = new Date(p.paid_at);
+    const dayIndex = Math.floor((d.getTime() - sevenDaysAgo.getTime()) / (1000 * 60 * 60 * 24));
+    if (dayIndex >= 0 && dayIndex < 7) {
+      days[dayIndex].amount += p.amount;
+    }
+  });
+
+  return { leadsStat, quotesStat, dailyRevenue: days };
 }
 
 async function getReportData(canSeeProfitLoss: boolean) {
@@ -163,7 +223,10 @@ export default async function ReportsPage() {
 
   const canSeeProfitLoss = ["admin", "accounts"].includes(currentStaff?.role ?? "");
 
-  const data = await getReportData(canSeeProfitLoss);
+  const [data, snapshot] = await Promise.all([
+    getReportData(canSeeProfitLoss),
+    getWeeklySnapshot(),
+  ]);
 
   const jobStatusOrder = ["pending", "in_production", "on_hold", "completed", "cancelled"];
 
@@ -173,6 +236,14 @@ export default async function ReportsPage() {
       <p className="mt-1 text-sm text-gray-500">
         A pulse on revenue, customers, and how work is flowing through the shop.
       </p>
+
+      <div className="mt-6">
+        <WeeklySnapshotCard
+          leadsStat={snapshot.leadsStat}
+          quotesStat={snapshot.quotesStat}
+          dailyRevenue={snapshot.dailyRevenue}
+        />
+      </div>
 
       {canSeeProfitLoss && (
         <div className="mt-6 rounded-xl border border-gray-200/70 bg-white p-5 shadow-sm">
