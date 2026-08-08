@@ -13,8 +13,10 @@ type Props = {
  */
 export default function CompanyLogo({ variant }: Props) {
   if (variant === "print") {
+    // The actual logo used on real invoices sent to clients — distinct
+    // from the navy/gold mark used in the app's sidebar/login.
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src="/logo-full.png" alt="Skylar Advertising" className="h-16 w-auto" />;
+    return <img src="/logo-header.png" alt="Skylar Advertising" className="h-16 w-auto" />;
   }
 
   if (variant === "login") {

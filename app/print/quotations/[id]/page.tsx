@@ -1,11 +1,20 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { formatCurrency, PRODUCT_TYPES } from "@/lib/constants";
+import { formatCurrency, formatNumber, PRODUCT_TYPES } from "@/lib/constants";
+import { amountToWordsAED } from "@/lib/number-to-words";
 import CompanyLogo from "@/components/company-logo";
 import PrintButton from "./print-button";
 
 function productLabel(value: string) {
   return PRODUCT_TYPES.find((p) => p.value === value)?.label ?? value;
+}
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 export default async function QuotationPrintPage({
@@ -18,7 +27,9 @@ export default async function QuotationPrintPage({
   const { data: quotation } = await supabase
     .from("quotations")
     .select(
-      "quote_number, status, version, subtotal, discount, tax_percent, tax_amount, total, valid_until, terms, created_at, customers(name, company_name, phone, email, address)"
+      `quote_number, status, version, subtotal, discount, tax_percent, tax_amount, total,
+       valid_until, terms, created_at,
+       customers(name, company_name, phone, email, address, trn_number)`
     )
     .eq("id", params.id)
     .single();
@@ -32,117 +43,213 @@ export default async function QuotationPrintPage({
     .order("sort_order");
 
   const customer = quotation.customers as any;
+  const noVat = quotation.tax_amount === 0;
+
+  const cell = "border border-gray-800 px-2 py-1";
+  const labelCell = `${cell} bg-gray-50 font-medium w-1/3`;
 
   return (
-    <div className="mx-auto max-w-3xl bg-white p-10 text-gray-800 print:p-0">
-      <div className="mb-6 flex justify-end print:hidden">
+    <div className="mx-auto max-w-3xl bg-white p-8 text-[13px] text-gray-900 print:p-0">
+      <div className="mb-4 flex justify-end print:hidden">
         <PrintButton />
       </div>
 
-      <div className="flex items-start justify-between border-b border-gray-200 pb-6">
-        <div>
-          <div className="mb-2">
-            <CompanyLogo variant="print" />
-          </div>
-          <h1 className="font-display text-lg font-semibold text-ink-900">
-            Skylar Advertising FZE-LLC
-          </h1>
-          <p className="text-xs text-gray-400">Digital Printing · Signage · Fabrication</p>
-          <p className="text-xs text-gray-400">+971 55 251 7225</p>
-        </div>
+      {/* Header */}
+      <div className="flex items-start justify-between pb-3">
+        <CompanyLogo variant="print" />
         <div className="text-right">
-          <h2 className="text-2xl font-bold text-brand-900">QUOTATION</h2>
-          <p className="text-sm text-gray-500">
-            {quotation.quote_number}
-            {quotation.version > 1 ? ` (v${quotation.version})` : ""}
-          </p>
-          <p className="mt-1 text-xs text-gray-400">
-            Date: {new Date(quotation.created_at).toLocaleDateString()}
-          </p>
-          {quotation.valid_until && (
-            <p className="text-xs text-gray-400">
-              Valid until: {new Date(quotation.valid_until).toLocaleDateString()}
-            </p>
-          )}
+          <h1 className="font-display text-base font-bold text-ink-900">
+            SKYLAR ADVERTISING FZE LLC
+          </h1>
+          <p className="text-xs text-gray-600">Dubai Investments Park 2, Dubai, UAE</p>
+          <p className="text-xs text-gray-600">Email: skylar.adservices@gmail.com</p>
+          <p className="text-xs text-gray-600">Phone: 04-2949706 · Mobile: +971 55 251 7225</p>
         </div>
       </div>
 
-      <div className="mt-6">
-        <p className="text-xs font-semibold uppercase text-gray-400">Bill To</p>
-        <p className="mt-1 font-medium text-gray-800">{customer?.name}</p>
-        {customer?.company_name && <p className="text-sm text-gray-500">{customer.company_name}</p>}
-        {customer?.address && <p className="text-sm text-gray-500">{customer.address}</p>}
-        {customer?.phone && <p className="text-sm text-gray-500">{customer.phone}</p>}
-        {customer?.email && <p className="text-sm text-gray-500">{customer.email}</p>}
+      {/* Title bar */}
+      <div className="border border-gray-800 py-1.5 text-center">
+        <h2 className="text-lg font-bold tracking-wide text-ink-900">
+          QUOTATION
+          {quotation.version > 1 ? ` (Revision ${quotation.version})` : ""}
+        </h2>
       </div>
 
-      <table className="mt-6 w-full border-collapse text-sm">
+      {/* Bill-to / quote meta, two columns */}
+      <div className="mt-3 grid grid-cols-2 gap-0">
+        <table className="w-full border-collapse">
+          <tbody>
+            <tr>
+              <td className={labelCell}>Company Name</td>
+              <td className={cell}>{customer?.company_name || customer?.name}</td>
+            </tr>
+            <tr>
+              <td className={labelCell}>Address</td>
+              <td className={cell}>{customer?.address || "—"}</td>
+            </tr>
+            <tr>
+              <td className={labelCell}>TRN</td>
+              <td className={cell}>{customer?.trn_number || ""}</td>
+            </tr>
+            <tr>
+              <td className={labelCell}>Contact Person</td>
+              <td className={cell}>{customer?.name}</td>
+            </tr>
+            <tr>
+              <td className={labelCell}>Contact No</td>
+              <td className={cell}>{customer?.phone || "—"}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table className="w-full border-collapse">
+          <tbody>
+            <tr>
+              <td className={labelCell}>Quote No.</td>
+              <td className={`${cell} font-semibold`}>{quotation.quote_number}</td>
+            </tr>
+            <tr>
+              <td className={labelCell}>Quote Date</td>
+              <td className={cell}>{formatDate(quotation.created_at)}</td>
+            </tr>
+            <tr>
+              <td className={labelCell}>Valid Until</td>
+              <td className={cell}>
+                {quotation.valid_until ? formatDate(quotation.valid_until) : "N/A"}
+              </td>
+            </tr>
+            <tr>
+              <td className={labelCell}>Customer&apos;s PO No.</td>
+              <td className={cell}>N/A</td>
+            </tr>
+            <tr>
+              <td className={labelCell}>Status</td>
+              <td className={`${cell} uppercase`}>{quotation.status}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Items table */}
+      <table className="mt-3 w-full border-collapse">
         <thead>
-          <tr className="border-b-2 border-gray-800 text-left text-xs uppercase text-gray-500">
-            <th className="py-2">Description</th>
-            <th className="py-2">Type</th>
-            <th className="py-2 text-right">Qty</th>
-            <th className="py-2 text-right">Unit Price</th>
-            <th className="py-2 text-right">Total</th>
+          <tr className="bg-gray-50">
+            <th className={`${cell} w-10 text-center`}>NO.</th>
+            <th className={cell}>DESCRIPTION OF ITEMS</th>
+            <th className={`${cell} w-14 text-center`}>QTY</th>
+            <th className={`${cell} w-24 text-right`}>UNIT PRICE</th>
+            <th className={`${cell} w-28 text-right`}>AMOUNT (AED)</th>
           </tr>
         </thead>
         <tbody>
-          {items?.map((item: any) => (
-            <tr key={item.id} className="border-b border-gray-100">
-              <td className="py-2">
+          {(items ?? []).map((item: any, i: number) => (
+            <tr key={item.id}>
+              <td className={`${cell} text-center align-top`}>{i + 1}</td>
+              <td className={`${cell} align-top`}>
                 <p className="font-medium">{item.description}</p>
-                {item.material && (
-                  <p className="text-xs text-gray-400">
-                    {item.material}
-                    {item.width && item.height ? ` · ${item.width}x${item.height}` : ""}
-                  </p>
-                )}
+                <p className="text-xs text-gray-500">
+                  {productLabel(item.product_type)}
+                  {item.material ? ` · ${item.material}` : ""}
+                </p>
               </td>
-              <td className="py-2 text-gray-500">{productLabel(item.product_type)}</td>
-              <td className="py-2 text-right">
+              <td className={`${cell} text-center align-top`}>
                 {item.qty} {item.unit}
               </td>
-              <td className="py-2 text-right">{formatCurrency(item.unit_price)}</td>
-              <td className="py-2 text-right font-medium">{formatCurrency(item.total_price)}</td>
+              <td className={`${cell} text-right align-top`}>{formatNumber(item.unit_price)}</td>
+              <td className={`${cell} text-right align-top font-medium`}>
+                {formatNumber(item.total_price)}
+              </td>
             </tr>
           ))}
+          <tr>
+            <td className={`${cell} h-20`} colSpan={5}>
+              {noVat && (
+                <p className="text-xs italic text-gray-500">
+                  Note: We are not registered for UAE VAT. No VAT has been charged on this
+                  Quotation as our annual taxable turnover is below the mandatory registration
+                  threshold.
+                </p>
+              )}
+            </td>
+          </tr>
         </tbody>
       </table>
 
-      <div className="mt-4 flex justify-end">
-        <div className="w-64 space-y-1 text-sm">
-          <div className="flex justify-between text-gray-500">
-            <span>Subtotal</span>
-            <span>{formatCurrency(quotation.subtotal)}</span>
-          </div>
-          <div className="flex justify-between text-gray-500">
-            <span>Discount</span>
-            <span>- {formatCurrency(quotation.discount)}</span>
-          </div>
-          <div className="flex justify-between text-gray-500">
-            <span>Tax ({quotation.tax_percent}%)</span>
-            <span>{formatCurrency(quotation.tax_amount)}</span>
-          </div>
-          <div className="flex justify-between border-t-2 border-gray-800 pt-1 text-base font-bold text-brand-900">
-            <span>Total</span>
-            <span>{formatCurrency(quotation.total)}</span>
-          </div>
-        </div>
+      {/* Amount in words / terms + totals */}
+      <div className="grid grid-cols-2 gap-0">
+        <table className="w-full border-collapse border-x border-b border-gray-800">
+          <tbody>
+            <tr>
+              <td className="px-2 py-1 align-top text-xs">
+                <span className="font-medium">AMOUNT IN WORDS:</span>{" "}
+                {amountToWordsAED(quotation.total)}
+              </td>
+            </tr>
+            <tr>
+              <td className="px-2 py-1 text-xs">
+                <span className="font-medium">TERMS:</span> {quotation.terms || "As agreed"}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table className="w-full border-collapse border-r border-b border-gray-800">
+          <tbody>
+            <tr>
+              <td className="border-b border-gray-800 px-2 py-1 font-medium">SUB-TOTAL</td>
+              <td className="border-b border-gray-800 px-2 py-1 text-right">
+                {formatCurrency(quotation.subtotal)}
+              </td>
+            </tr>
+            {quotation.discount > 0 && (
+              <tr>
+                <td className="border-b border-gray-800 px-2 py-1 font-medium">DISCOUNT</td>
+                <td className="border-b border-gray-800 px-2 py-1 text-right">
+                  - {formatCurrency(quotation.discount)}
+                </td>
+              </tr>
+            )}
+            <tr>
+              <td className="border-b border-gray-800 px-2 py-1 font-medium">
+                {quotation.tax_percent}% VAT
+              </td>
+              <td className="border-b border-gray-800 px-2 py-1 text-right">
+                {noVat ? "-" : formatCurrency(quotation.tax_amount)}
+              </td>
+            </tr>
+            <tr>
+              <td className="px-2 py-1.5 font-bold">GRAND TOTAL</td>
+              <td className="px-2 py-1.5 text-right font-bold">
+                {formatCurrency(quotation.total)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      {quotation.terms && (
-        <div className="mt-8 border-t border-gray-100 pt-4 text-xs text-gray-500">
-          <p className="mb-1 font-semibold uppercase text-gray-400">Terms & Notes</p>
-          {quotation.terms}
+      {/* Bank details + signature */}
+      <div className="mt-3 grid grid-cols-2 gap-0 border border-gray-800">
+        <div className="border-r border-gray-800 p-3 text-xs">
+          <p className="mb-1 font-semibold">Bank Details:</p>
+          <p>
+            Account Name: <span className="text-brand-700">SKYLAR ADVERTISING FZE LLC</span>
+          </p>
+          <p>Account No. 0033528255001</p>
+          <p>IBAN No.: AE200400000033528255001</p>
+          <p>Swift Code: NRAKAEAKXXX</p>
+          <p>Bank: Ras Al Khaimah Bank (Rakbank)</p>
+          <p>Address: Maktoum Street, Deira, Dubai UAE</p>
         </div>
-      )}
-
-      <div className="mt-12 flex justify-between text-xs text-gray-400">
-        <div>
-          <p className="border-t border-gray-300 pt-2 w-40">Prepared by</p>
-        </div>
-        <div>
-          <p className="border-t border-gray-300 pt-2 w-40">Customer Approval</p>
+        <div className="flex flex-col items-center justify-between p-3 text-center text-xs">
+          <p className="font-semibold">For SKYLAR ADVERTISING FZE-LLC</p>
+          <img
+            src="/company-stamp.png"
+            alt="Company Stamp"
+            className="my-2 h-20 w-20 object-contain opacity-90"
+          />
+          <p className="w-full border-t border-gray-400 pt-1 text-gray-500">
+            Authorized Signatory
+          </p>
         </div>
       </div>
     </div>

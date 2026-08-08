@@ -1,11 +1,20 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { formatCurrency, PRODUCT_TYPES } from "@/lib/constants";
+import { formatCurrency, formatNumber, PRODUCT_TYPES } from "@/lib/constants";
+import { amountToWordsAED } from "@/lib/number-to-words";
 import CompanyLogo from "@/components/company-logo";
 import PrintButton from "./print-button";
 
 function productLabel(value: string) {
   return PRODUCT_TYPES.find((p) => p.value === value)?.label ?? value;
+}
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 export default async function InvoicePrintPage({
@@ -18,7 +27,9 @@ export default async function InvoicePrintPage({
   const { data: invoice } = await supabase
     .from("invoices")
     .select(
-      "invoice_number, status, subtotal, tax_amount, total, amount_paid, due_date, created_at, job_orders(job_number, quotation_id), customers(name, company_name, phone, email, address)"
+      `invoice_number, status, subtotal, tax_amount, total, amount_paid, due_date, created_at,
+       job_orders(job_number, quotation_id, quotations(quote_number, terms), deliveries(status, delivery_date)),
+       customers(name, company_name, phone, email, address, trn_number)`
     )
     .eq("id", params.id)
     .single();
@@ -26,171 +37,232 @@ export default async function InvoicePrintPage({
   if (!invoice) notFound();
 
   const jobOrder = invoice.job_orders as any;
-
-  const [{ data: payments }, { data: items }] = await Promise.all([
-    supabase
-      .from("payments")
-      .select("amount, method, reference_no, paid_at")
-      .eq("invoice_id", params.id)
-      .order("paid_at", { ascending: true }),
-    jobOrder?.quotation_id
-      ? supabase
-          .from("quotation_items")
-          .select("*")
-          .eq("quotation_id", jobOrder.quotation_id)
-          .order("sort_order")
-      : Promise.resolve({ data: [] as any[] }),
-  ]);
-
+  const quotation = jobOrder?.quotations as any;
+  const delivery = jobOrder?.deliveries as any;
   const customer = invoice.customers as any;
-  const balance = invoice.total - invoice.amount_paid;
 
-  const statusColors: Record<string, string> = {
-    unpaid: "bg-red-50 text-red-700",
-    partial: "bg-amber-50 text-amber-700",
-    paid: "bg-green-50 text-green-700",
-    overdue: "bg-red-100 text-red-800",
-    cancelled: "bg-gray-100 text-gray-500",
-  };
+  const { data: items } = jobOrder?.quotation_id
+    ? await supabase
+        .from("quotation_items")
+        .select("*")
+        .eq("quotation_id", jobOrder.quotation_id)
+        .order("sort_order")
+    : { data: [] as any[] };
+
+  const balance = invoice.total - invoice.amount_paid;
+  const taxPct = invoice.subtotal > 0 ? Math.round((invoice.tax_amount / invoice.subtotal) * 100) : 0;
+  const noVat = invoice.tax_amount === 0;
+
+  const cell = "border border-gray-800 px-2 py-1";
+  const labelCell = `${cell} bg-gray-50 font-medium w-1/3`;
 
   return (
-    <div className="mx-auto max-w-3xl bg-white p-10 text-gray-800 print:p-0">
-      <div className="mb-6 flex justify-end print:hidden">
+    <div className="mx-auto max-w-3xl bg-white p-8 text-[13px] text-gray-900 print:p-0">
+      <div className="mb-4 flex justify-end print:hidden">
         <PrintButton />
       </div>
 
-      <div className="flex items-start justify-between border-b border-gray-200 pb-6">
-        <div>
-          <div className="mb-2">
-            <CompanyLogo variant="print" />
-          </div>
-          <h1 className="font-display text-lg font-semibold text-ink-900">
-            Skylar Advertising FZE-LLC
-          </h1>
-          <p className="text-xs text-gray-400">Digital Printing · Signage · Fabrication</p>
-          <p className="text-xs text-gray-400">+971 55 251 7225</p>
-        </div>
+      {/* Header */}
+      <div className="flex items-start justify-between pb-3">
+        <CompanyLogo variant="print" />
         <div className="text-right">
-          <h2 className="text-2xl font-bold text-ink-900">INVOICE</h2>
-          <p className="text-sm text-gray-500">{invoice.invoice_number}</p>
-          {jobOrder?.job_number && (
-            <p className="mt-1 text-xs text-gray-400">Job: {jobOrder.job_number}</p>
-          )}
-          <p className="text-xs text-gray-400">
-            Date: {new Date(invoice.created_at).toLocaleDateString()}
-          </p>
-          {invoice.due_date && (
-            <p className="text-xs text-gray-400">
-              Due: {new Date(invoice.due_date).toLocaleDateString()}
-            </p>
-          )}
-          <span
-            className={`mt-2 inline-block rounded-full px-2 py-1 text-xs font-medium ${statusColors[invoice.status]}`}
-          >
-            {invoice.status.toUpperCase()}
-          </span>
+          <h1 className="font-display text-base font-bold text-ink-900">
+            SKYLAR ADVERTISING FZE LLC
+          </h1>
+          <p className="text-xs text-gray-600">Dubai Investments Park 2, Dubai, UAE</p>
+          <p className="text-xs text-gray-600">Email: skylar.adservices@gmail.com</p>
+          <p className="text-xs text-gray-600">Phone: 04-2949706 · Mobile: +971 55 251 7225</p>
         </div>
       </div>
 
-      <div className="mt-6">
-        <p className="text-xs font-semibold uppercase text-gray-400">Bill To</p>
-        <p className="mt-1 font-medium text-gray-800">{customer?.name}</p>
-        {customer?.company_name && <p className="text-sm text-gray-500">{customer.company_name}</p>}
-        {customer?.address && <p className="text-sm text-gray-500">{customer.address}</p>}
-        {customer?.phone && <p className="text-sm text-gray-500">{customer.phone}</p>}
-        {customer?.email && <p className="text-sm text-gray-500">{customer.email}</p>}
+      {/* Title bar */}
+      <div className="border border-gray-800 py-1.5 text-center">
+        <h2 className="text-lg font-bold tracking-wide text-ink-900">TAX INVOICE</h2>
       </div>
 
-      {items && items.length > 0 && (
-        <table className="mt-6 w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b-2 border-gray-800 text-left text-xs uppercase text-gray-500">
-              <th className="py-2">Description</th>
-              <th className="py-2">Type</th>
-              <th className="py-2 text-right">Qty</th>
-              <th className="py-2 text-right">Unit Price</th>
-              <th className="py-2 text-right">Total</th>
-            </tr>
-          </thead>
+      {/* Bill-to / invoice meta, two columns */}
+      <div className="mt-3 grid grid-cols-2 gap-0">
+        <table className="w-full border-collapse">
           <tbody>
-            {items.map((item: any) => (
-              <tr key={item.id} className="border-b border-gray-100">
-                <td className="py-2">
-                  <p className="font-medium">{item.description}</p>
-                  {item.material && (
-                    <p className="text-xs text-gray-400">
-                      {item.material}
-                      {item.width && item.height ? ` · ${item.width}x${item.height}` : ""}
-                    </p>
-                  )}
-                </td>
-                <td className="py-2 text-gray-500">{productLabel(item.product_type)}</td>
-                <td className="py-2 text-right">
-                  {item.qty} {item.unit}
-                </td>
-                <td className="py-2 text-right">{formatCurrency(item.unit_price)}</td>
-                <td className="py-2 text-right font-medium">{formatCurrency(item.total_price)}</td>
-              </tr>
-            ))}
+            <tr>
+              <td className={labelCell}>Company Name</td>
+              <td className={cell}>{customer?.company_name || customer?.name}</td>
+            </tr>
+            <tr>
+              <td className={labelCell}>Address</td>
+              <td className={cell}>{customer?.address || "—"}</td>
+            </tr>
+            <tr>
+              <td className={labelCell}>TRN</td>
+              <td className={cell}>{customer?.trn_number || ""}</td>
+            </tr>
+            <tr>
+              <td className={labelCell}>Contact Person</td>
+              <td className={cell}>{customer?.name}</td>
+            </tr>
+            <tr>
+              <td className={labelCell}>Contact No</td>
+              <td className={cell}>{customer?.phone || "—"}</td>
+            </tr>
           </tbody>
         </table>
-      )}
 
-      <div className="mt-6 flex justify-end">
-        <div className="w-72 space-y-1 text-sm">
-          <div className="flex justify-between text-gray-500">
-            <span>Subtotal</span>
-            <span>{formatCurrency(invoice.subtotal)}</span>
-          </div>
-          <div className="flex justify-between text-gray-500">
-            <span>Tax</span>
-            <span>{formatCurrency(invoice.tax_amount)}</span>
-          </div>
-          <div className="flex justify-between border-t-2 border-gray-800 pt-1 text-base font-bold text-ink-900">
-            <span>Total</span>
-            <span>{formatCurrency(invoice.total)}</span>
-          </div>
-          <div className="flex justify-between text-green-700">
-            <span>Paid</span>
-            <span>{formatCurrency(invoice.amount_paid)}</span>
-          </div>
-          <div className="flex justify-between border-t border-gray-200 pt-1 font-semibold text-red-600">
-            <span>Balance Due</span>
-            <span>{formatCurrency(balance)}</span>
-          </div>
-        </div>
+        <table className="w-full border-collapse">
+          <tbody>
+            <tr>
+              <td className={labelCell}>Invoice No.</td>
+              <td className={`${cell} font-semibold`}>{invoice.invoice_number}</td>
+            </tr>
+            <tr>
+              <td className={labelCell}>Invoice Date</td>
+              <td className={cell}>{formatDate(invoice.created_at)}</td>
+            </tr>
+            <tr>
+              <td className={labelCell}>Customer&apos;s PO No.</td>
+              <td className={cell}>N/A</td>
+            </tr>
+            <tr>
+              <td className={labelCell}>P.O Date</td>
+              <td className={cell}>N/A</td>
+            </tr>
+            <tr>
+              <td className={labelCell}>Quotation Ref</td>
+              <td className={cell}>{quotation?.quote_number || "—"}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      {payments && payments.length > 0 && (
-        <div className="mt-8 border-t border-gray-100 pt-4">
-          <p className="mb-2 text-xs font-semibold uppercase text-gray-400">Payment History</p>
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 text-xs uppercase text-gray-500">
-                <th className="py-1">Date</th>
-                <th className="py-1">Method</th>
-                <th className="py-1 text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.map((p, i) => (
-                <tr key={i} className="border-b border-gray-50">
-                  <td className="py-1">{new Date(p.paid_at).toLocaleDateString()}</td>
-                  <td className="py-1 capitalize text-gray-500">{p.method?.replace("_", " ")}</td>
-                  <td className="py-1 text-right">{formatCurrency(p.amount)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {/* Items table */}
+      <table className="mt-3 w-full border-collapse">
+        <thead>
+          <tr className="bg-gray-50">
+            <th className={`${cell} w-10 text-center`}>NO.</th>
+            <th className={cell}>DESCRIPTION OF ITEMS</th>
+            <th className={`${cell} w-14 text-center`}>QTY</th>
+            <th className={`${cell} w-24 text-right`}>UNIT PRICE</th>
+            <th className={`${cell} w-20 text-right`}>DISCOUNT</th>
+            <th className={`${cell} w-28 text-right`}>AMOUNT (AED)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(items ?? []).map((item: any, i: number) => (
+            <tr key={item.id}>
+              <td className={`${cell} text-center align-top`}>{i + 1}</td>
+              <td className={`${cell} align-top`}>
+                <p className="font-medium">{item.description}</p>
+                <p className="text-xs text-gray-500">
+                  {productLabel(item.product_type)}
+                  {item.material ? ` · ${item.material}` : ""}
+                </p>
+              </td>
+              <td className={`${cell} text-center align-top`}>
+                {item.qty} {item.unit}
+              </td>
+              <td className={`${cell} text-right align-top`}>{formatNumber(item.unit_price)}</td>
+              <td className={`${cell} text-right align-top`}>—</td>
+              <td className={`${cell} text-right align-top font-medium`}>
+                {formatNumber(item.total_price)}
+              </td>
+            </tr>
+          ))}
+          {/* Filler row so the table has some body height, matching the reference layout */}
+          <tr>
+            <td className={`${cell} h-24`} colSpan={6}>
+              {noVat && (
+                <p className="text-xs italic text-gray-500">
+                  Note: We are not registered for UAE VAT. No VAT has been charged on this
+                  Invoice as our annual taxable turnover is below the mandatory registration
+                  threshold.
+                </p>
+              )}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      {/* Amount in words / delivery / terms + totals */}
+      <div className="grid grid-cols-2 gap-0">
+        <table className="w-full border-collapse border-x border-b border-gray-800">
+          <tbody>
+            <tr>
+              <td className="px-2 py-1 align-top text-xs">
+                <span className="font-medium">AMOUNT IN WORDS:</span>{" "}
+                {amountToWordsAED(invoice.total)}
+              </td>
+            </tr>
+            <tr>
+              <td className="px-2 py-1 text-xs">
+                <span className="font-medium">DELIVERY:</span>{" "}
+                {delivery?.status === "delivered" && delivery.delivery_date
+                  ? `COMPLETED ON ${formatDate(delivery.delivery_date).toUpperCase()}`
+                  : "PENDING"}
+              </td>
+            </tr>
+            <tr>
+              <td className="px-2 py-1 text-xs">
+                <span className="font-medium">PAYMENT TERMS:</span>{" "}
+                {quotation?.terms || "As agreed"}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table className="w-full border-collapse border-r border-b border-gray-800">
+          <tbody>
+            <tr>
+              <td className="border-b border-gray-800 px-2 py-1 font-medium">SUB-TOTAL</td>
+              <td className="border-b border-gray-800 px-2 py-1 text-right">
+                {formatCurrency(invoice.subtotal)}
+              </td>
+            </tr>
+            <tr>
+              <td className="border-b border-gray-800 px-2 py-1 font-medium">
+                {taxPct}% VAT
+              </td>
+              <td className="border-b border-gray-800 px-2 py-1 text-right">
+                {noVat ? "-" : formatCurrency(invoice.tax_amount)}
+              </td>
+            </tr>
+            <tr>
+              <td className="px-2 py-1.5 font-bold">TOTAL INVOICE AMOUNT</td>
+              <td className="px-2 py-1.5 text-right font-bold">
+                {formatCurrency(invoice.total)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {balance > 0 && invoice.status !== "unpaid" && (
+        <p className="mt-1 text-right text-xs font-medium text-magenta-600">
+          Balance Due: {formatCurrency(balance)} ({formatCurrency(invoice.amount_paid)} paid)
+        </p>
       )}
 
-      <div className="mt-12 flex justify-between text-xs text-gray-400">
-        <div>
-          <p className="w-40 border-t border-gray-300 pt-2">Prepared by</p>
+      {/* Bank details + signature */}
+      <div className="mt-3 grid grid-cols-2 gap-0 border border-gray-800">
+        <div className="border-r border-gray-800 p-3 text-xs">
+          <p className="mb-1 font-semibold">Bank Details:</p>
+          <p>
+            Account Name: <span className="text-brand-700">SKYLAR ADVERTISING FZE LLC</span>
+          </p>
+          <p>Account No. 0033528255001</p>
+          <p>IBAN No.: AE200400000033528255001</p>
+          <p>Swift Code: NRAKAEAKXXX</p>
+          <p>Bank: Ras Al Khaimah Bank (Rakbank)</p>
+          <p>Address: Maktoum Street, Deira, Dubai UAE</p>
         </div>
-        <div>
-          <p className="w-40 border-t border-gray-300 pt-2">Received by</p>
+        <div className="flex flex-col items-center justify-between p-3 text-center text-xs">
+          <p className="font-semibold">For SKYLAR ADVERTISING FZE-LLC</p>
+          <img
+            src="/company-stamp.png"
+            alt="Company Stamp"
+            className="my-2 h-20 w-20 object-contain opacity-90"
+          />
+          <p className="w-full border-t border-gray-400 pt-1 text-gray-500">
+            Authorized Signatory
+          </p>
         </div>
       </div>
     </div>

@@ -41,3 +41,12 @@ export function formatCurrency(amount: number) {
     minimumFractionDigits: 2,
   }).format(amount);
 }
+
+// Plain number with thousands separators, no currency symbol — used in
+// printed document line-items where the column header already says "AED".
+export function formatNumber(amount: number) {
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
