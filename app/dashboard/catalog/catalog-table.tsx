@@ -58,6 +58,7 @@ export default function CatalogTable({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [marginInput, setMarginInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,19 +85,39 @@ export default function CatalogTable({
       inventory_item_id: item.inventory_item_id ?? "",
       consumption_per_unit: String(item.consumption_per_unit ?? 0),
     });
+    setMarginInput("");
   }
 
   function startNew() {
     setEditingId(null);
     setShowNewForm(true);
     setForm(emptyForm);
+    setMarginInput("");
   }
 
   function cancel() {
     setEditingId(null);
     setShowNewForm(false);
+    setMarginInput("");
     setError(null);
   }
+
+  // Typing a target margin % auto-calculates Selling Price from Cost Price,
+  // using the same gross-margin definition used everywhere else in the app:
+  // margin% = (sell - cost) / sell  =>  sell = cost / (1 - margin/100)
+  function handleMarginChange(value: string) {
+    setMarginInput(value);
+    const marginPct = parseFloat(value);
+    const cost = parseFloat(form.cost_price) || 0;
+    if (!isNaN(marginPct) && marginPct < 100 && cost > 0) {
+      const newSellingPrice = cost / (1 - marginPct / 100);
+      setForm((f) => ({ ...f, selling_price: newSellingPrice.toFixed(2) }));
+    }
+  }
+
+  const liveCost = parseFloat(form.cost_price) || 0;
+  const liveSelling = parseFloat(form.selling_price) || 0;
+  const liveMargin = liveSelling > 0 ? Math.round(((liveSelling - liveCost) / liveSelling) * 100) : 0;
 
   async function save() {
     if (!form.product_type || !form.name || !form.description) {
@@ -270,6 +291,33 @@ export default function CatalogTable({
                 className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
               />
             </div>
+            {canSeeCost && (
+              <div>
+                <label className="mb-1 block text-xs font-medium text-magenta-600">
+                  Target Margin %
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={marginInput}
+                  onChange={(e) => handleMarginChange(e.target.value)}
+                  placeholder={liveCost > 0 ? `e.g. 40` : "Set cost first"}
+                  disabled={liveCost <= 0}
+                  className="w-full rounded-lg border border-magenta-500/30 bg-magenta-50/30 px-2 py-1.5 text-sm disabled:opacity-50"
+                />
+                <p
+                  className={`mt-1 text-xs font-medium ${
+                    liveMargin >= 40
+                      ? "text-green-600"
+                      : liveMargin >= 20
+                      ? "text-amber-600"
+                      : "text-magenta-600"
+                  }`}
+                >
+                  Current margin: {liveMargin}%
+                </p>
+              </div>
+            )}
           </div>
 
           {isAdmin && (

@@ -1,4 +1,5 @@
 export const PRODUCT_TYPES = [
+  { value: "design_layout", label: "Design & Layout" },
   { value: "digital_printing", label: "Digital Printing" },
   { value: "large_format", label: "Large Format Printing" },
   { value: "signage", label: "Signage" },
