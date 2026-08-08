@@ -17,6 +17,17 @@ function formatDate(dateStr: string) {
   });
 }
 
+function InfoRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 border-b border-gray-100 py-1.5 last:border-0">
+      <span className="text-[11px] uppercase tracking-wide text-gray-400">{label}</span>
+      <span className={`text-right text-sm text-gray-800 ${bold ? "font-semibold" : ""}`}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
 export default async function QuotationPrintPage({
   params,
 }: {
@@ -45,192 +56,169 @@ export default async function QuotationPrintPage({
   const customer = quotation.customers as any;
   const noVat = quotation.tax_amount === 0;
 
-  const cell = "border border-gray-800 px-2 py-1";
-  const labelCell = `${cell} bg-gray-50 font-medium w-1/3`;
+  const statusColors: Record<string, string> = {
+    draft: "bg-gray-100 text-gray-600",
+    sent: "bg-amber-50 text-amber-700",
+    approved: "bg-green-50 text-green-700",
+    rejected: "bg-red-50 text-red-700",
+    revised: "bg-purple-50 text-purple-700",
+  };
 
   return (
-    <div className="mx-auto max-w-3xl bg-white p-8 text-[13px] text-gray-900 print:p-0">
+    <div className="mx-auto max-w-3xl bg-white p-8 text-gray-800 print:p-0">
       <div className="mb-4 flex justify-end print:hidden">
         <PrintButton />
       </div>
 
       {/* Header */}
-      <div className="flex items-start justify-between pb-3">
-        <CompanyLogo variant="print" />
+      <div className="flex items-start justify-between border-b border-gray-100 pb-5">
+        <div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/arabic-tagline.png" alt="" className="mb-1.5 h-4 w-auto" />
+          <CompanyLogo variant="print" />
+        </div>
         <div className="text-right">
           <h1 className="font-display text-base font-bold text-ink-900">
             SKYLAR ADVERTISING FZE LLC
           </h1>
-          <p className="text-xs text-gray-600">Dubai Investments Park 2, Dubai, UAE</p>
-          <p className="text-xs text-gray-600">Email: skylar.adservices@gmail.com</p>
-          <p className="text-xs text-gray-600">Phone: 04-2949706 · Mobile: +971 55 251 7225</p>
+          <p className="mt-0.5 text-xs text-gray-500">Dubai Investments Park 2, Dubai, UAE</p>
+          <p className="text-xs text-gray-500">skylar.adservices@gmail.com</p>
+          <p className="text-xs text-gray-500">04-2949706 · +971 55 251 7225</p>
         </div>
       </div>
 
-      {/* Title bar */}
-      <div className="border border-gray-800 py-1.5 text-center">
-        <h2 className="text-lg font-bold tracking-wide text-ink-900">
-          QUOTATION
-          {quotation.version > 1 ? ` (Revision ${quotation.version})` : ""}
+      {/* Title */}
+      <div className="mt-5 flex items-center justify-between">
+        <h2 className="font-display text-xl font-bold tracking-tight text-ink-900">
+          Quotation
+          {quotation.version > 1 ? (
+            <span className="ml-2 text-sm font-medium text-gray-400">
+              Revision {quotation.version}
+            </span>
+          ) : null}
         </h2>
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-semibold uppercase ${statusColors[quotation.status]}`}
+        >
+          {quotation.status}
+        </span>
       </div>
 
-      {/* Bill-to / quote meta, two columns */}
-      <div className="mt-3 grid grid-cols-2 gap-0">
-        <table className="w-full border-collapse">
-          <tbody>
-            <tr>
-              <td className={labelCell}>Company Name</td>
-              <td className={cell}>{customer?.company_name || customer?.name}</td>
-            </tr>
-            <tr>
-              <td className={labelCell}>Address</td>
-              <td className={cell}>{customer?.address || "—"}</td>
-            </tr>
-            <tr>
-              <td className={labelCell}>TRN</td>
-              <td className={cell}>{customer?.trn_number || ""}</td>
-            </tr>
-            <tr>
-              <td className={labelCell}>Contact Person</td>
-              <td className={cell}>{customer?.name}</td>
-            </tr>
-            <tr>
-              <td className={labelCell}>Contact No</td>
-              <td className={cell}>{customer?.phone || "—"}</td>
-            </tr>
-          </tbody>
-        </table>
+      {/* Bill-to / quote meta */}
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="rounded-xl bg-gray-50 p-4">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-brand-600">
+            Bill To
+          </p>
+          <InfoRow label="Company" value={customer?.company_name || customer?.name} bold />
+          <InfoRow label="Address" value={customer?.address || "—"} />
+          <InfoRow label="TRN" value={customer?.trn_number || "—"} />
+          <InfoRow label="Contact Person" value={customer?.name} />
+          <InfoRow label="Contact No" value={customer?.phone || "—"} />
+        </div>
 
-        <table className="w-full border-collapse">
-          <tbody>
-            <tr>
-              <td className={labelCell}>Quote No.</td>
-              <td className={`${cell} font-semibold`}>{quotation.quote_number}</td>
-            </tr>
-            <tr>
-              <td className={labelCell}>Quote Date</td>
-              <td className={cell}>{formatDate(quotation.created_at)}</td>
-            </tr>
-            <tr>
-              <td className={labelCell}>Valid Until</td>
-              <td className={cell}>
-                {quotation.valid_until ? formatDate(quotation.valid_until) : "N/A"}
-              </td>
-            </tr>
-            <tr>
-              <td className={labelCell}>Customer&apos;s PO No.</td>
-              <td className={cell}>N/A</td>
-            </tr>
-            <tr>
-              <td className={labelCell}>Status</td>
-              <td className={`${cell} uppercase`}>{quotation.status}</td>
-            </tr>
-          </tbody>
-        </table>
+        <div className="rounded-xl bg-gray-50 p-4">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-brand-600">
+            Quotation Details
+          </p>
+          <InfoRow label="Quote No." value={quotation.quote_number} bold />
+          <InfoRow label="Quote Date" value={formatDate(quotation.created_at)} />
+          <InfoRow
+            label="Valid Until"
+            value={quotation.valid_until ? formatDate(quotation.valid_until) : "N/A"}
+          />
+          <InfoRow label="Customer's PO No." value="N/A" />
+        </div>
       </div>
 
       {/* Items table */}
-      <table className="mt-3 w-full border-collapse">
+      <table className="mt-5 w-full border-collapse text-sm">
         <thead>
-          <tr className="bg-gray-50">
-            <th className={`${cell} w-10 text-center`}>NO.</th>
-            <th className={cell}>DESCRIPTION OF ITEMS</th>
-            <th className={`${cell} w-14 text-center`}>QTY</th>
-            <th className={`${cell} w-24 text-right`}>UNIT PRICE</th>
-            <th className={`${cell} w-28 text-right`}>AMOUNT (AED)</th>
+          <tr className="border-b-2 border-gray-800 text-left text-[11px] uppercase tracking-wide text-gray-500">
+            <th className="w-8 py-2">No.</th>
+            <th className="py-2">Description of Items</th>
+            <th className="py-2 text-center">Qty</th>
+            <th className="py-2 text-right">Unit Price</th>
+            <th className="py-2 text-right">Amount (AED)</th>
           </tr>
         </thead>
         <tbody>
           {(items ?? []).map((item: any, i: number) => (
-            <tr key={item.id}>
-              <td className={`${cell} text-center align-top`}>{i + 1}</td>
-              <td className={`${cell} align-top`}>
-                <p className="font-medium">{item.description}</p>
-                <p className="text-xs text-gray-500">
+            <tr key={item.id} className="border-b border-gray-100">
+              <td className="py-2.5 align-top text-gray-400">{i + 1}</td>
+              <td className="py-2.5 align-top">
+                <p className="font-medium text-gray-800">{item.description}</p>
+                <p className="text-xs text-gray-400">
                   {productLabel(item.product_type)}
                   {item.material ? ` · ${item.material}` : ""}
                 </p>
               </td>
-              <td className={`${cell} text-center align-top`}>
+              <td className="py-2.5 text-center align-top text-gray-600">
                 {item.qty} {item.unit}
               </td>
-              <td className={`${cell} text-right align-top`}>{formatNumber(item.unit_price)}</td>
-              <td className={`${cell} text-right align-top font-medium`}>
+              <td className="py-2.5 text-right align-top text-gray-600">
+                {formatNumber(item.unit_price)}
+              </td>
+              <td className="py-2.5 text-right align-top font-medium text-gray-800">
                 {formatNumber(item.total_price)}
               </td>
             </tr>
           ))}
-          <tr>
-            <td className={`${cell} h-20`} colSpan={5}>
-              {noVat && (
-                <p className="text-xs italic text-gray-500">
-                  Note: We are not registered for UAE VAT. No VAT has been charged on this
-                  Quotation as our annual taxable turnover is below the mandatory registration
-                  threshold.
-                </p>
-              )}
-            </td>
-          </tr>
         </tbody>
       </table>
 
-      {/* Amount in words / terms + totals */}
-      <div className="grid grid-cols-2 gap-0">
-        <table className="w-full border-collapse border-x border-b border-gray-800">
-          <tbody>
-            <tr>
-              <td className="px-2 py-1 align-top text-xs">
-                <span className="font-medium">AMOUNT IN WORDS:</span>{" "}
-                {amountToWordsAED(quotation.total)}
-              </td>
-            </tr>
-            <tr>
-              <td className="px-2 py-1 text-xs">
-                <span className="font-medium">TERMS:</span> {quotation.terms || "As agreed"}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      {noVat && (
+        <p className="mt-3 text-xs italic text-gray-400">
+          Note: We are not registered for UAE VAT. No VAT has been charged on this quotation as
+          our annual taxable turnover is below the mandatory registration threshold.
+        </p>
+      )}
 
-        <table className="w-full border-collapse border-r border-b border-gray-800">
-          <tbody>
-            <tr>
-              <td className="border-b border-gray-800 px-2 py-1 font-medium">SUB-TOTAL</td>
-              <td className="border-b border-gray-800 px-2 py-1 text-right">
-                {formatCurrency(quotation.subtotal)}
-              </td>
-            </tr>
-            {quotation.discount > 0 && (
-              <tr>
-                <td className="border-b border-gray-800 px-2 py-1 font-medium">DISCOUNT</td>
-                <td className="border-b border-gray-800 px-2 py-1 text-right">
-                  - {formatCurrency(quotation.discount)}
-                </td>
-              </tr>
-            )}
-            <tr>
-              <td className="border-b border-gray-800 px-2 py-1 font-medium">
-                {quotation.tax_percent}% VAT
-              </td>
-              <td className="border-b border-gray-800 px-2 py-1 text-right">
-                {noVat ? "-" : formatCurrency(quotation.tax_amount)}
-              </td>
-            </tr>
-            <tr>
-              <td className="px-2 py-1.5 font-bold">GRAND TOTAL</td>
-              <td className="px-2 py-1.5 text-right font-bold">
-                {formatCurrency(quotation.total)}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      {/* Amount in words / terms + totals */}
+      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="rounded-xl bg-gray-50 p-4 text-xs text-gray-600">
+          <p className="mb-2">
+            <span className="font-semibold uppercase tracking-wide text-gray-500">
+              Amount in Words:{" "}
+            </span>
+            {amountToWordsAED(quotation.total)}
+          </p>
+          <p>
+            <span className="font-semibold uppercase tracking-wide text-gray-500">
+              Terms:{" "}
+            </span>
+            {quotation.terms || "As agreed"}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-gray-100 p-4">
+          <div className="flex justify-between border-b border-gray-100 py-1.5 text-sm text-gray-500">
+            <span>Sub-Total</span>
+            <span>{formatCurrency(quotation.subtotal)}</span>
+          </div>
+          {quotation.discount > 0 && (
+            <div className="flex justify-between border-b border-gray-100 py-1.5 text-sm text-gray-500">
+              <span>Discount</span>
+              <span>- {formatCurrency(quotation.discount)}</span>
+            </div>
+          )}
+          <div className="flex justify-between border-b border-gray-100 py-1.5 text-sm text-gray-500">
+            <span>{quotation.tax_percent}% VAT</span>
+            <span>{noVat ? "-" : formatCurrency(quotation.tax_amount)}</span>
+          </div>
+          <div className="flex justify-between pt-2 text-base font-bold text-ink-900">
+            <span>Grand Total</span>
+            <span>{formatCurrency(quotation.total)}</span>
+          </div>
+        </div>
       </div>
 
       {/* Bank details + signature */}
-      <div className="mt-3 grid grid-cols-2 gap-0 border border-gray-800">
-        <div className="border-r border-gray-800 p-3 text-xs">
-          <p className="mb-1 font-semibold">Bank Details:</p>
+      <div className="mt-5 grid grid-cols-1 gap-0 overflow-hidden rounded-xl border border-gray-100 sm:grid-cols-2">
+        <div className="border-b border-gray-100 p-4 text-xs text-gray-600 sm:border-b-0 sm:border-r">
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+            Bank Details
+          </p>
           <p>
             Account Name: <span className="text-brand-700">SKYLAR ADVERTISING FZE LLC</span>
           </p>
@@ -240,14 +228,15 @@ export default async function QuotationPrintPage({
           <p>Bank: Ras Al Khaimah Bank (Rakbank)</p>
           <p>Address: Maktoum Street, Deira, Dubai UAE</p>
         </div>
-        <div className="flex flex-col items-center justify-between p-3 text-center text-xs">
-          <p className="font-semibold">For SKYLAR ADVERTISING FZE-LLC</p>
+        <div className="flex flex-col items-center justify-between p-4 text-center text-xs">
+          <p className="font-semibold text-gray-700">For SKYLAR ADVERTISING FZE-LLC</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/company-stamp.png"
             alt="Company Stamp"
             className="my-2 h-20 w-20 object-contain opacity-90"
           />
-          <p className="w-full border-t border-gray-400 pt-1 text-gray-500">
+          <p className="w-full border-t border-gray-200 pt-1 text-gray-400">
             Authorized Signatory
           </p>
         </div>
