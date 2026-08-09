@@ -36,15 +36,15 @@ export const PRODUCTION_STAGES = [
 export const UNITS = ["pcs", "sqft", "sqm", "rft", "set", "hrs"];
 
 export function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("en-AE", {
-    style: "currency",
-    currency: "AED",
+  const formatted = new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(amount);
+  return `D ${formatted}`;
 }
 
 // Plain number with thousands separators, no currency symbol — used in
-// printed document line-items where the column header already says "AED".
+// printed document line-items where the column header already says "D".
 export function formatNumber(amount: number) {
   return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,

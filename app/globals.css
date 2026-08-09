@@ -26,3 +26,10 @@ h1, h2, h3 {
   background-color: #0EA5D6;
   color: white;
 }
+
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm 14mm;
+  }
+}
