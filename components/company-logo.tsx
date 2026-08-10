@@ -16,7 +16,7 @@ export default function CompanyLogo({ variant }: Props) {
     // The actual logo used on real invoices sent to clients — distinct
     // from the navy/gold mark used in the app's sidebar/login.
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src="/logo-header.png" alt="Skylar Advertising" className="h-16 w-auto" />;
+    return <img src="/logo-header.png" alt="Skylar Advertising" className="h-10 w-auto" />;
   }
 
   if (variant === "login") {

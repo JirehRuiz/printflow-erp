@@ -15,6 +15,7 @@ import {
   Tags,
   Package,
   Truck,
+  Receipt,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -27,17 +28,20 @@ const NAV_ITEMS = [
   { href: "/dashboard/inventory", label: "Inventory", icon: Package },
   { href: "/dashboard/suppliers", label: "Suppliers", icon: Truck },
   { href: "/dashboard/invoices", label: "Invoices", icon: Wallet },
+  { href: "/dashboard/expenses", label: "Expenses", icon: Receipt, roles: ["admin", "accounts"] },
   { href: "/dashboard/catalog", label: "Catalog", icon: Tags },
   { href: "/dashboard/reports", label: "Reports", icon: LineChart },
   { href: "/dashboard/staff", label: "Staff", icon: UserCog },
 ];
 
-export default function SidebarNav() {
+export default function SidebarNav({ role }: { role: string }) {
   const pathname = usePathname();
+
+  const visibleItems = NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(role));
 
   return (
     <nav className="space-y-1">
-      {NAV_ITEMS.map((item) => {
+      {visibleItems.map((item) => {
         const isActive = item.exact
           ? pathname === item.href
           : pathname.startsWith(item.href);

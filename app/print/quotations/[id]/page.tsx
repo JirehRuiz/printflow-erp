@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { formatCurrency, formatNumber, PRODUCT_TYPES } from "@/lib/constants";
+import { formatNumber, PRODUCT_TYPES } from "@/lib/constants";
+import CurrencyAmount from "@/components/currency-amount";
 import { amountToWordsAED } from "@/lib/number-to-words";
 import CompanyLogo from "@/components/company-logo";
 import PrintButton from "./print-button";
@@ -71,25 +72,25 @@ export default async function QuotationPrintPage({
       </div>
 
       {/* Header */}
-      <div className="flex items-start justify-between border-b border-gray-100 pb-5">
+      <div className="flex items-start justify-between border-b border-gray-100 pb-3">
         <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/arabic-tagline.png" alt="" className="mb-1.5 h-4 w-auto" />
+          <img src="/arabic-tagline.png" alt="" className="mb-1 h-3 w-auto" />
           <CompanyLogo variant="print" />
         </div>
         <div className="text-right">
-          <h1 className="font-display text-base font-bold text-ink-900">
+          <h1 className="font-display text-sm font-bold text-ink-900">
             SKYLAR ADVERTISING FZE LLC
           </h1>
-          <p className="mt-0.5 text-[11px] text-gray-500">Dubai Investments Park 2, Dubai, UAE</p>
-          <p className="text-[11px] text-gray-500">skylar.adservices@gmail.com</p>
-          <p className="text-[11px] text-gray-500">04-2949706 · +971 55 251 7225</p>
+          <p className="mt-0.5 text-[10px] text-gray-500">Dubai Investments Park 2, Dubai, UAE</p>
+          <p className="text-[10px] text-gray-500">skylar.adservices@gmail.com</p>
+          <p className="text-[10px] text-gray-500">04-2949706 · +971 55 251 7225</p>
         </div>
       </div>
 
       {/* Title */}
-      <div className="mt-5 flex items-center justify-between">
-        <h2 className="font-display text-lg font-bold tracking-tight text-ink-900">
+      <div className="mt-2 flex items-center justify-between">
+        <h2 className="font-display text-base font-bold tracking-tight text-ink-900">
           Quotation
           {quotation.version > 1 ? (
             <span className="ml-2 text-sm font-medium text-gray-400">
@@ -105,7 +106,7 @@ export default async function QuotationPrintPage({
       </div>
 
       {/* Bill-to / quote meta */}
-      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="rounded-xl bg-gray-50 p-3">
           <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-brand-600">
             Bill To
@@ -194,21 +195,21 @@ export default async function QuotationPrintPage({
         <div className="rounded-xl border border-gray-100 p-3">
           <div className="flex justify-between border-b border-gray-100 py-1.5 text-xs text-gray-500">
             <span>Sub-Total</span>
-            <span>{formatCurrency(quotation.subtotal)}</span>
+            <CurrencyAmount amount={quotation.subtotal} />
           </div>
           {quotation.discount > 0 && (
             <div className="flex justify-between border-b border-gray-100 py-1.5 text-xs text-gray-500">
               <span>Discount</span>
-              <span>- {formatCurrency(quotation.discount)}</span>
+              <span className="inline-flex items-center gap-1">- <CurrencyAmount amount={quotation.discount} /></span>
             </div>
           )}
           <div className="flex justify-between border-b border-gray-100 py-1.5 text-xs text-gray-500">
             <span>{quotation.tax_percent}% VAT</span>
-            <span>{noVat ? "-" : formatCurrency(quotation.tax_amount)}</span>
+            <span>{noVat ? "-" : <CurrencyAmount amount={quotation.tax_amount} />}</span>
           </div>
           <div className="flex justify-between border-b-2 border-ink-900 py-2 text-sm font-bold text-ink-900">
             <span>Grand Total</span>
-            <span>{formatCurrency(quotation.total)}</span>
+            <CurrencyAmount amount={quotation.total} />
           </div>
         </div>
       </div>

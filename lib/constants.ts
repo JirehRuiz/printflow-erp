@@ -22,6 +22,22 @@ export const STAFF_ROLES = [
   { value: "delivery", label: "Delivery" },
 ] as const;
 
+export const EXPENSE_CATEGORIES = [
+  "Rent",
+  "Salaries & Wages",
+  "Utilities",
+  "Fuel & Transport",
+  "Marketing & Advertising",
+  "Office Supplies",
+  "Equipment & Maintenance",
+  "Bank Charges",
+  "Professional Fees",
+  "Insurance",
+  "Miscellaneous",
+];
+
+export const PAYMENT_METHODS = ["cash", "bank_transfer", "card", "cheque"];
+
 export const PRODUCTION_STAGES = [
   { value: "design", label: "Design" },
   { value: "printing", label: "Printing" },

@@ -75,7 +75,7 @@ async function getReportData(canSeeProfitLoss: boolean) {
   sixMonthsAgo.setDate(1);
   sixMonthsAgo.setHours(0, 0, 0, 0);
 
-  const [paymentsRes, invoicesRes, jobsRes, quotationsRes, plInvoicesRes] = await Promise.all([
+  const [paymentsRes, invoicesRes, jobsRes, quotationsRes, plInvoicesRes, expensesRes] = await Promise.all([
     supabase.from("payments").select("amount, paid_at").gte("paid_at", sixMonthsAgo.toISOString()),
     supabase.from("invoices").select("total, amount_paid, customer_id, customers(name)"),
     supabase.from("job_orders").select("status"),
@@ -86,6 +86,12 @@ async function getReportData(canSeeProfitLoss: boolean) {
           .from("invoices")
           .select("total, created_at, job_orders(quotation_id)")
           .gte("created_at", sixMonthsAgo.toISOString())
+      : Promise.resolve({ data: [] as any[] }),
+    canSeeProfitLoss
+      ? supabase
+          .from("expenses")
+          .select("amount, expense_date, category")
+          .gte("expense_date", sixMonthsAgo.toISOString().split("T")[0])
       : Promise.resolve({ data: [] as any[] }),
   ]);
 
@@ -137,8 +143,24 @@ async function getReportData(canSeeProfitLoss: boolean) {
   const totalRevenue6mo = buckets.reduce((sum, b) => sum + b.revenue, 0);
 
   // --- Profit & Loss (admin/accounts only) ---
-  let plBuckets: { month: string; revenue: number; cogs: number; grossProfit: number }[] = [];
-  let plTotals = { revenue: 0, cogs: 0, grossProfit: 0, marginPct: 0 };
+  let plBuckets: {
+    month: string;
+    revenue: number;
+    cogs: number;
+    grossProfit: number;
+    expenses: number;
+    netProfit: number;
+  }[] = [];
+  let plTotals = {
+    revenue: 0,
+    cogs: 0,
+    grossProfit: 0,
+    marginPct: 0,
+    expenses: 0,
+    netProfit: 0,
+    netMarginPct: 0,
+  };
+  let expensesByCategory: { category: string; amount: number }[] = [];
 
   if (canSeeProfitLoss) {
     const plInvoices = (plInvoicesRes.data ?? []) as any[];
@@ -159,12 +181,15 @@ async function getReportData(canSeeProfitLoss: boolean) {
       });
     }
 
-    const plBucketMap: Record<string, { month: string; revenue: number; cogs: number }> = {};
+    const plBucketMap: Record<
+      string,
+      { month: string; revenue: number; cogs: number; expenses: number }
+    > = {};
     for (let i = 5; i >= 0; i--) {
       const d = new Date();
       d.setMonth(d.getMonth() - i);
       const key = `${d.getFullYear()}-${d.getMonth()}`;
-      plBucketMap[key] = { month: monthLabel(d), revenue: 0, cogs: 0 };
+      plBucketMap[key] = { month: monthLabel(d), revenue: 0, cogs: 0, expenses: 0 };
     }
 
     plInvoices.forEach((inv) => {
@@ -178,21 +203,41 @@ async function getReportData(canSeeProfitLoss: boolean) {
       bucket.cogs += cogs;
     });
 
+    const expenseRows = (expensesRes.data ?? []) as any[];
+    const categoryTotals: Record<string, number> = {};
+    expenseRows.forEach((exp) => {
+      const d = new Date(exp.expense_date);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      const bucket = plBucketMap[key];
+      if (bucket) bucket.expenses += exp.amount;
+      categoryTotals[exp.category] = (categoryTotals[exp.category] ?? 0) + exp.amount;
+    });
+    expensesByCategory = Object.entries(categoryTotals)
+      .map(([category, amount]) => ({ category, amount }))
+      .sort((a, b) => b.amount - a.amount);
+
     plBuckets = Object.values(plBucketMap).map((b) => ({
       month: b.month,
       revenue: b.revenue,
       cogs: b.cogs,
       grossProfit: b.revenue - b.cogs,
+      expenses: b.expenses,
+      netProfit: b.revenue - b.cogs - b.expenses,
     }));
 
     const totalRevenuePL = plBuckets.reduce((sum, b) => sum + b.revenue, 0);
     const totalCogs = plBuckets.reduce((sum, b) => sum + b.cogs, 0);
+    const totalExpenses = plBuckets.reduce((sum, b) => sum + b.expenses, 0);
     const totalGrossProfit = totalRevenuePL - totalCogs;
+    const totalNetProfit = totalGrossProfit - totalExpenses;
     plTotals = {
       revenue: totalRevenuePL,
       cogs: totalCogs,
       grossProfit: totalGrossProfit,
       marginPct: totalRevenuePL > 0 ? Math.round((totalGrossProfit / totalRevenuePL) * 100) : 0,
+      expenses: totalExpenses,
+      netProfit: totalNetProfit,
+      netMarginPct: totalRevenuePL > 0 ? Math.round((totalNetProfit / totalRevenuePL) * 100) : 0,
     };
   }
 
@@ -205,6 +250,7 @@ async function getReportData(canSeeProfitLoss: boolean) {
     conversionRate,
     plBuckets,
     plTotals,
+    expensesByCategory,
   };
 }
 
@@ -257,7 +303,7 @@ export default async function ReportsPage() {
             </div>
           </div>
 
-          <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="rounded-lg bg-gray-50 p-3">
               <p className="text-xs uppercase text-gray-400">Revenue</p>
               <p className="tabular-nums text-lg font-semibold text-ink-900">
@@ -276,15 +322,69 @@ export default async function ReportsPage() {
                 {formatCurrency(data.plTotals.grossProfit)}
               </p>
             </div>
-            <div className="rounded-lg bg-brand-50 p-3">
-              <p className="text-xs uppercase text-brand-600">Gross Margin</p>
-              <p className="tabular-nums text-lg font-semibold text-brand-700">
+            <div className="rounded-lg bg-gray-50 p-3">
+              <p className="text-xs uppercase text-gray-400">Gross Margin</p>
+              <p className="tabular-nums text-lg font-semibold text-gray-700">
                 {data.plTotals.marginPct}%
               </p>
             </div>
           </div>
 
+          <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="rounded-lg bg-gray-50 p-3">
+              <p className="text-xs uppercase text-gray-400">Operating Expenses</p>
+              <p className="tabular-nums text-lg font-semibold text-magenta-600">
+                {formatCurrency(data.plTotals.expenses)}
+              </p>
+            </div>
+            <a
+              href="/dashboard/expenses"
+              className="rounded-lg bg-gray-50 p-3 transition hover:bg-gray-100"
+            >
+              <p className="text-xs uppercase text-gray-400">Manage Expenses</p>
+              <p className="text-sm font-medium text-brand-600">View / Add →</p>
+            </a>
+            <div className="rounded-lg bg-brand-50 p-3">
+              <p className="text-xs uppercase text-brand-600">Net Profit</p>
+              <p
+                className={`tabular-nums text-lg font-semibold ${
+                  data.plTotals.netProfit >= 0 ? "text-brand-700" : "text-magenta-600"
+                }`}
+              >
+                {formatCurrency(data.plTotals.netProfit)}
+              </p>
+            </div>
+            <div className="rounded-lg bg-brand-50 p-3">
+              <p className="text-xs uppercase text-brand-600">Net Margin</p>
+              <p
+                className={`tabular-nums text-lg font-semibold ${
+                  data.plTotals.netMarginPct >= 0 ? "text-brand-700" : "text-magenta-600"
+                }`}
+              >
+                {data.plTotals.netMarginPct}%
+              </p>
+            </div>
+          </div>
+
           <ProfitLossChart data={data.plBuckets} />
+
+          {data.expensesByCategory.length > 0 && (
+            <div className="mt-4 border-t border-gray-100 pt-3">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Expenses by Category (6mo)
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {data.expensesByCategory.map((c) => (
+                  <span
+                    key={c.category}
+                    className="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600"
+                  >
+                    {c.category}: <span className="font-medium">{formatCurrency(c.amount)}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           <p className="mt-3 text-xs text-gray-400">
             Note: items added to a quotation without a linked catalog entry (custom line items)
@@ -292,6 +392,7 @@ export default async function ReportsPage() {
             may be slightly better than shown if custom items were used.
           </p>
         </div>
+
       )}
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">

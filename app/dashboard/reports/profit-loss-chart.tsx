@@ -3,7 +3,19 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from "recharts";
 import { formatCurrency } from "@/lib/constants";
 
-type MonthlyPL = { month: string; cogs: number; grossProfit: number };
+type MonthlyPL = {
+  month: string;
+  cogs: number;
+  grossProfit: number;
+  expenses: number;
+  netProfit: number;
+};
+
+const NAME_LABELS: Record<string, string> = {
+  cogs: "Cost of Goods",
+  expenses: "Operating Expenses",
+  netProfit: "Net Profit",
+};
 
 export default function ProfitLossChart({ data }: { data: MonthlyPL[] }) {
   return (
@@ -19,18 +31,16 @@ export default function ProfitLossChart({ data }: { data: MonthlyPL[] }) {
             tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)}
           />
           <Tooltip
-            formatter={(value: number, name: string) => [
-              formatCurrency(value),
-              name === "cogs" ? "Cost of Goods" : "Gross Profit",
-            ]}
+            formatter={(value: number, name: string) => [formatCurrency(value), NAME_LABELS[name] ?? name]}
             contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 13 }}
           />
           <Legend
-            formatter={(value) => (value === "cogs" ? "Cost of Goods" : "Gross Profit")}
+            formatter={(value) => NAME_LABELS[value] ?? value}
             wrapperStyle={{ fontSize: 12 }}
           />
           <Bar dataKey="cogs" stackId="a" fill="#D6127E" radius={[0, 0, 0, 0]} />
-          <Bar dataKey="grossProfit" stackId="a" fill="#0EA5D6" radius={[6, 6, 0, 0]} />
+          <Bar dataKey="expenses" stackId="a" fill="#F4C21A" radius={[0, 0, 0, 0]} />
+          <Bar dataKey="netProfit" stackId="a" fill="#0EA5D6" radius={[6, 6, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

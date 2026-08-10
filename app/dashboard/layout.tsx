@@ -43,7 +43,7 @@ export default async function DashboardLayout({
             <CompanyLogo variant="sidebar" />
           </div>
 
-          <SidebarNav />
+          <SidebarNav role={staff?.role ?? ""} />
         </div>
 
         <div className="border-t border-white/10 pt-4">
