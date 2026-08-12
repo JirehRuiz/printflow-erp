@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { EXPENSE_CATEGORIES, PAYMENT_METHODS, formatCurrency } from "@/lib/constants";
+import { EXPENSE_CATEGORIES, PAYMENT_METHODS, FUND_SOURCES, formatCurrency } from "@/lib/constants";
 
 type Supplier = { id: string; name: string };
 
@@ -14,6 +14,7 @@ type Expense = {
   amount: number;
   expense_date: string;
   payment_method: string | null;
+  source_of_fund: string | null;
   supplier_id: string | null;
   receipt_reference: string | null;
   notes: string | null;
@@ -26,6 +27,7 @@ const emptyForm = {
   amount: "",
   expense_date: new Date().toISOString().split("T")[0],
   payment_method: "cash",
+  source_of_fund: "",
   supplier_id: "",
   receipt_reference: "",
   notes: "",
@@ -47,6 +49,7 @@ export default function ExpensesTable({
   const supabase = createClient();
 
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [fundSourceFilter, setFundSourceFilter] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -54,12 +57,22 @@ export default function ExpensesTable({
   const [error, setError] = useState<string | null>(null);
 
   const filtered = useMemo(
-    () => (categoryFilter ? expenses.filter((e) => e.category === categoryFilter) : expenses),
-    [expenses, categoryFilter]
+    () =>
+      expenses.filter(
+        (e) =>
+          (!categoryFilter || e.category === categoryFilter) &&
+          (!fundSourceFilter || e.source_of_fund === fundSourceFilter)
+      ),
+    [expenses, categoryFilter, fundSourceFilter]
   );
 
   const categories = useMemo(
     () => Array.from(new Set(expenses.map((e) => e.category))).sort(),
+    [expenses]
+  );
+
+  const fundSources = useMemo(
+    () => Array.from(new Set(expenses.map((e) => e.source_of_fund).filter(Boolean))).sort() as string[],
     [expenses]
   );
 
@@ -80,6 +93,7 @@ export default function ExpensesTable({
       amount: String(e.amount),
       expense_date: e.expense_date,
       payment_method: e.payment_method ?? "cash",
+      source_of_fund: e.source_of_fund ?? "",
       supplier_id: e.supplier_id ?? "",
       receipt_reference: e.receipt_reference ?? "",
       notes: e.notes ?? "",
@@ -106,6 +120,7 @@ export default function ExpensesTable({
       amount: parseFloat(form.amount) || 0,
       expense_date: form.expense_date,
       payment_method: form.payment_method || null,
+      source_of_fund: form.source_of_fund || null,
       supplier_id: form.supplier_id || null,
       receipt_reference: form.receipt_reference || null,
       notes: form.notes || null,
@@ -146,6 +161,21 @@ export default function ExpensesTable({
             </option>
           ))}
         </select>
+
+        {fundSources.length > 0 && (
+          <select
+            value={fundSourceFilter}
+            onChange={(e) => setFundSourceFilter(e.target.value)}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          >
+            <option value="">All fund sources</option>
+            {fundSources.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        )}
 
         {!showForm && (
           <button
@@ -225,6 +255,21 @@ export default function ExpensesTable({
               </select>
             </div>
             <div>
+              <label className="mb-1 block text-xs font-medium text-gray-600">Source of Fund</label>
+              <input
+                list="fund-sources"
+                value={form.source_of_fund}
+                onChange={(e) => setForm((f) => ({ ...f, source_of_fund: e.target.value }))}
+                placeholder="e.g. Petty Cash"
+                className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+              />
+              <datalist id="fund-sources">
+                {FUND_SOURCES.map((s) => (
+                  <option key={s} value={s} />
+                ))}
+              </datalist>
+            </div>
+            <div>
               <label className="mb-1 block text-xs font-medium text-gray-600">
                 Supplier (optional)
               </label>
@@ -285,6 +330,7 @@ export default function ExpensesTable({
               <th className="px-4 py-3">Description</th>
               <th className="px-4 py-3">Supplier</th>
               <th className="px-4 py-3">Method</th>
+              <th className="px-4 py-3">Source of Fund</th>
               <th className="px-4 py-3">Amount</th>
               <th className="px-4 py-3"></th>
             </tr>
@@ -305,6 +351,15 @@ export default function ExpensesTable({
                   <td className="px-4 py-3 text-gray-500">{supplierName(e.suppliers) ?? "—"}</td>
                   <td className="px-4 py-3 capitalize text-gray-500">
                     {e.payment_method?.replace("_", " ") ?? "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    {e.source_of_fund ? (
+                      <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
+                        {e.source_of_fund}
+                      </span>
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 tabular-nums font-medium text-gray-800">
                     {formatCurrency(e.amount)}
@@ -329,7 +384,7 @@ export default function ExpensesTable({
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
                   No expenses recorded yet.
                 </td>
               </tr>

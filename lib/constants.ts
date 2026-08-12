@@ -38,6 +38,15 @@ export const EXPENSE_CATEGORIES = [
 
 export const PAYMENT_METHODS = ["cash", "bank_transfer", "card", "cheque"];
 
+export const FUND_SOURCES = [
+  "Petty Cash",
+  "Cashier",
+  "Company Bank Account",
+  "Borrowed",
+  "Owner's Personal Funds",
+  "Credit Card",
+];
+
 export const PRODUCTION_STAGES = [
   { value: "design", label: "Design" },
   { value: "printing", label: "Printing" },
