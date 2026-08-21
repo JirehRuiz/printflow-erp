@@ -53,11 +53,21 @@ export default async function ExpensesPage() {
             material cost. Feeds directly into Net Profit on the Reports page.
           </p>
         </div>
-        <div className="rounded-xl border border-gray-200/70 bg-white px-4 py-2 text-right shadow-sm">
-          <p className="text-xs uppercase text-gray-400">This Month</p>
-          <p className="tabular-nums font-display text-lg font-semibold text-magenta-600">
-            {formatCurrency(thisMonthTotal)}
-          </p>
+        <div className="flex items-center gap-3">
+          <a
+            href="/print/expenses"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+          >
+            🖨️ Print Report
+          </a>
+          <div className="rounded-xl border border-gray-200/70 bg-white px-4 py-2 text-right shadow-sm">
+            <p className="text-xs uppercase text-gray-400">This Month</p>
+            <p className="tabular-nums font-display text-lg font-semibold text-magenta-600">
+              {formatCurrency(thisMonthTotal)}
+            </p>
+          </div>
         </div>
       </div>
 

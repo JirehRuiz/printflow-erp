@@ -43,14 +43,12 @@ export default async function PettyCashPage() {
       .order("expense_date", { ascending: true }),
   ]);
 
-  // Merge inflows + petty-cash outflows into one chronological ledger,
-  // computing a running balance as we go.
   type LedgerRow = {
     id: string;
     date: string;
     label: string;
     detail: string | null;
-    amount: number; // signed: positive = in, negative = out
+    amount: number;
     kind: "daily_sales" | "top_up" | "expense";
   };
 
@@ -92,11 +90,23 @@ export default async function PettyCashPage() {
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-semibold text-ink-900">Petty Cash</h1>
-      <p className="mt-1 text-sm text-gray-500">
-        Track daily sales cash and top-ups against what's been spent from petty cash — so you
-        always know what's actually available.
-      </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-semibold text-ink-900">Petty Cash</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Track daily sales cash and top-ups against what's been spent from petty cash — so you
+            always know what's actually available.
+          </p>
+        </div>
+        <a
+          href="/print/petty-cash"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+        >
+          🖨️ Print Statement
+        </a>
+      </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-gray-200/70 bg-white p-5 shadow-sm">
