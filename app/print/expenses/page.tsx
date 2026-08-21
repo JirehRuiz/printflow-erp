@@ -22,7 +22,7 @@ export default async function ExpensesPrintPage({
     .single();
 
   if (!["admin", "accounts"].includes(currentStaff?.role ?? "")) {
-    redirect("/dashboard/expenses");
+    redirect("/dashboard/finance?tab=expenses");
   }
 
   let query = supabase

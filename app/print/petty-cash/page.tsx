@@ -22,7 +22,7 @@ export default async function PettyCashPrintPage({
     .single();
 
   if (!["admin", "accounts"].includes(currentStaff?.role ?? "")) {
-    redirect("/dashboard/petty-cash");
+    redirect("/dashboard/finance?tab=petty-cash");
   }
 
   const [{ data: inflows }, { data: outflows }] = await Promise.all([

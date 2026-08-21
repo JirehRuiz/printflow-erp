@@ -15,8 +15,7 @@ import {
   Tags,
   Package,
   Truck,
-  Receipt,
-  PiggyBank,
+  Landmark,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -29,8 +28,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/inventory", label: "Inventory", icon: Package },
   { href: "/dashboard/suppliers", label: "Suppliers", icon: Truck },
   { href: "/dashboard/invoices", label: "Invoices", icon: Wallet },
-  { href: "/dashboard/expenses", label: "Expenses", icon: Receipt, roles: ["admin", "accounts"] },
-  { href: "/dashboard/petty-cash", label: "Petty Cash", icon: PiggyBank, roles: ["admin", "accounts"] },
+  { href: "/dashboard/finance", label: "Finance", icon: Landmark, roles: ["admin", "accounts"] },
   { href: "/dashboard/catalog", label: "Catalog", icon: Tags },
   { href: "/dashboard/reports", label: "Reports", icon: LineChart },
   { href: "/dashboard/staff", label: "Staff", icon: UserCog },
