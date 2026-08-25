@@ -20,6 +20,7 @@ export default async function PettyCashSection() {
 
   type LedgerRow = {
     id: string;
+    rawId: string;
     date: string;
     label: string;
     detail: string | null;
@@ -30,6 +31,7 @@ export default async function PettyCashSection() {
   const rows: LedgerRow[] = [
     ...(inflows ?? []).map((t: any) => ({
       id: `in-${t.id}`,
+      rawId: t.id,
       date: t.transaction_date,
       label: t.transaction_type === "daily_sales" ? "Daily Sales" : "Top-up",
       detail: t.description,
@@ -38,6 +40,7 @@ export default async function PettyCashSection() {
     })),
     ...(outflows ?? []).map((e: any) => ({
       id: `out-${e.id}`,
+      rawId: e.id,
       date: e.expense_date,
       label: `Expense — ${e.category}`,
       detail: e.description,
@@ -67,7 +70,7 @@ export default async function PettyCashSection() {
     <div>
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-gray-500">
-          Daily sales cash and top-ups, tracked against what's been spent from petty cash.
+          Daily sales cash and top-ups, tracked against what's been spent from the fund.
         </p>
         <a
           href="/print/petty-cash"
@@ -91,7 +94,7 @@ export default async function PettyCashSection() {
           </p>
           {balance < 0 && (
             <p className="mt-1 text-xs font-medium text-magenta-600">
-              ⚠ Petty cash is overdrawn — more has gone out than in.
+              ⚠ The fund is overdrawn — more has gone out than in.
             </p>
           )}
         </div>
@@ -107,7 +110,7 @@ export default async function PettyCashSection() {
           <p className="tabular-nums font-display text-xl font-semibold text-magenta-600">
             {formatCurrency(totalOut)}
           </p>
-          <p className="mt-1 text-xs text-gray-400">Expenses paid from petty cash</p>
+          <p className="mt-1 text-xs text-gray-400">Expenses paid from the fund</p>
         </div>
       </div>
 

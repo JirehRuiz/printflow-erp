@@ -113,7 +113,7 @@ export default async function PettyCashPrintPage({
 
       <div className="mt-3 flex items-center justify-between">
         <h2 className="font-display text-base font-bold tracking-tight text-ink-900">
-          Petty Cash Statement
+          Cash Fund Statement
         </h2>
         <span className="text-xs text-gray-500">{rangeLabel}</span>
       </div>
