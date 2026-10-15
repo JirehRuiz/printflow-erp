@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { FUND_SOURCES } from "@/lib/constants";
 
 export default function PettyCashForm() {
   const router = useRouter();
   const supabase = createClient();
 
-  const [type, setType] = useState<"daily_sales" | "top_up">("daily_sales");
+  const [fund, setFund] = useState<string>(FUND_SOURCES[0]);
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [description, setDescription] = useState("");
@@ -28,7 +29,9 @@ export default function PettyCashForm() {
     setLoading(true);
 
     const { error } = await supabase.from("petty_cash_transactions").insert({
-      transaction_type: type,
+      fund_name: fund,
+      // legacy column, kept in sync so older data/reports still make sense
+      transaction_type: fund === "Daily Sales" ? "daily_sales" : "top_up",
       amount: amt,
       transaction_date: date,
       description: description || null,
@@ -51,31 +54,24 @@ export default function PettyCashForm() {
       onSubmit={handleSubmit}
       className="rounded-xl border border-gray-200/70 bg-white p-5 shadow-sm"
     >
-      <h2 className="mb-3 text-sm font-semibold text-gray-800">Log Cash In</h2>
+      <h2 className="mb-3 text-sm font-semibold text-gray-800">Add Money to a Fund</h2>
 
-      <div className="mb-3 flex gap-2">
-        <button
-          type="button"
-          onClick={() => setType("daily_sales")}
-          className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold ${
-            type === "daily_sales"
-              ? "bg-brand-500 text-white"
-              : "border border-gray-300 text-gray-500"
-          }`}
-        >
-          Daily Sales
-        </button>
-        <button
-          type="button"
-          onClick={() => setType("top_up")}
-          className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold ${
-            type === "top_up"
-              ? "bg-brand-500 text-white"
-              : "border border-gray-300 text-gray-500"
-          }`}
-        >
-          Top-up / Add Funds
-        </button>
+      <label className="mb-1 block text-xs font-medium text-gray-600">Fund</label>
+      <div className="mb-3 grid grid-cols-2 gap-2">
+        {FUND_SOURCES.map((f) => (
+          <button
+            key={f}
+            type="button"
+            onClick={() => setFund(f)}
+            className={`rounded-lg px-3 py-2 text-xs font-semibold ${
+              fund === f
+                ? "bg-brand-500 text-white"
+                : "border border-gray-300 text-gray-500 hover:bg-gray-50"
+            }`}
+          >
+            {f}
+          </button>
+        ))}
       </div>
 
       <label className="mb-1 block text-xs font-medium text-gray-600">Amount</label>
@@ -96,12 +92,14 @@ export default function PettyCashForm() {
       />
 
       <label className="mb-1 mt-3 block text-xs font-medium text-gray-600">
-        {type === "daily_sales" ? "Notes (optional)" : "Source (e.g. Owner deposit)"}
+        Notes (optional)
       </label>
       <input
         value={description}
         onChange={(e) => setDescription(e.target.value)}
-        placeholder={type === "daily_sales" ? "e.g. Counter sales" : "e.g. Owner deposit, bank withdrawal"}
+        placeholder={
+          fund === "Daily Sales" ? "e.g. Counter sales" : "e.g. Owner deposit, bank withdrawal"
+        }
         className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
       />
 
@@ -114,13 +112,13 @@ export default function PettyCashForm() {
         disabled={loading}
         className="mt-4 w-full rounded-lg bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
       >
-        {loading ? "Saving..." : `+ Add ${type === "daily_sales" ? "Daily Sales" : "Top-up"}`}
+        {loading ? "Saving..." : `+ Add to ${fund}`}
       </button>
 
       <p className="mt-3 text-xs text-gray-400">
-        Spending from petty cash? Log it as an expense with{" "}
-        <span className="font-medium text-gray-600">Source of Fund = Petty Cash</span> on the
-        Expenses page — it'll show up here automatically.
+        Spending from a fund? Log it as an expense on the Expenses tab and pick the fund as{" "}
+        <span className="font-medium text-gray-600">Source of Fund</span> — it deducts from that
+        fund automatically.
       </p>
     </form>
   );

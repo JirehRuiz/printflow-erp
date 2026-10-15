@@ -39,7 +39,7 @@ export default async function FinancePage({
 
   const tabs = [
     { key: "expenses", label: "Expenses" },
-    { key: "petty-cash", label: "Cash Fund" },
+    { key: "petty-cash", label: "Funds" },
   ];
 
   return (

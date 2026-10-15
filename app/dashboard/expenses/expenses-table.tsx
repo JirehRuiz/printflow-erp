@@ -256,18 +256,23 @@ export default function ExpensesTable({
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-600">Source of Fund</label>
-              <input
-                list="fund-sources"
+              <select
                 value={form.source_of_fund}
                 onChange={(e) => setForm((f) => ({ ...f, source_of_fund: e.target.value }))}
-                placeholder="e.g. Petty Cash"
                 className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
-              />
-              <datalist id="fund-sources">
+              >
+                <option value="">None</option>
                 {FUND_SOURCES.map((s) => (
-                  <option key={s} value={s} />
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
                 ))}
-              </datalist>
+                {/* Keep older free-text values (e.g. "Cashier") selectable so editing
+                    an old expense doesn't silently wipe its source */}
+                {form.source_of_fund && !FUND_SOURCES.includes(form.source_of_fund) && (
+                  <option value={form.source_of_fund}>{form.source_of_fund} (legacy)</option>
+                )}
+              </select>
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-600">

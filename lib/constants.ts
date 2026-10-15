@@ -38,14 +38,31 @@ export const EXPENSE_CATEGORIES = [
 
 export const PAYMENT_METHODS = ["cash", "bank_transfer", "card", "cheque"];
 
+// The four funds tracked on the Finance > Funds tab. These exact names are
+// used both for fund inflows and for Expenses -> Source of Fund, so an
+// expense tagged to a fund reduces that specific fund's balance.
 export const FUND_SOURCES = [
   "Petty Cash",
-  "Cashier",
-  "Company Bank Account",
-  "Borrowed",
-  "Owner's Personal Funds",
-  "Credit Card",
+  "Manager's Fund",
+  "Daily Sales",
+  "Other Fund",
 ];
+
+// Visual identity per fund (static class strings so Tailwind picks them up)
+export const FUND_STYLES: Record<string, { dot: string; badge: string }> = {
+  "Petty Cash": { dot: "bg-brand-500", badge: "bg-brand-50 text-brand-700" },
+  "Manager's Fund": { dot: "bg-purple-500", badge: "bg-purple-50 text-purple-700" },
+  "Daily Sales": { dot: "bg-green-500", badge: "bg-green-50 text-green-700" },
+  "Other Fund": { dot: "bg-gray-400", badge: "bg-gray-100 text-gray-600" },
+};
+
+// Matches any free-text value (case-insensitive) to one of the four funds.
+// Returns null if it doesn't match (e.g. legacy values like "Cashier").
+export function matchFund(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const v = value.trim().toLowerCase();
+  return FUND_SOURCES.find((f) => f.toLowerCase() === v) ?? null;
+}
 
 export const PRODUCTION_STAGES = [
   { value: "design", label: "Design" },
