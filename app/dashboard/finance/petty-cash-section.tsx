@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, FUND_SOURCES, FUND_STYLES, matchFund } from "@/lib/constants";
 import PettyCashTable from "../petty-cash/petty-cash-table";
 import PettyCashForm from "../petty-cash/petty-cash-form";
+import FinanceChart from "./finance-chart";
 
 export default async function PettyCashSection() {
   const supabase = createClient();
@@ -165,6 +166,15 @@ export default async function PettyCashSection() {
           assign a fund.
         </p>
       )}
+
+      <div className="mt-6">
+        <FinanceChart
+          mode="funds"
+          groupLabel="fund"
+          groups={[...FUND_SOURCES]}
+          data={rows.map((r) => ({ date: r.date, amount: r.amount, group: r.fund }))}
+        />
+      </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1">

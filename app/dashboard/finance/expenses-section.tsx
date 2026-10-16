@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/constants";
 import ExpensesTable from "../expenses/expenses-table";
+import FinanceChart from "./finance-chart";
 
 export default async function ExpensesSection() {
   const supabase = createClient();
@@ -41,6 +42,19 @@ export default async function ExpensesSection() {
             </p>
           </div>
         </div>
+      </div>
+
+      <div className="mb-6">
+        <FinanceChart
+          mode="expenses"
+          groupLabel="category"
+          groups={Array.from(new Set((expenses ?? []).map((e) => e.category))).sort()}
+          data={(expenses ?? []).map((e) => ({
+            date: e.expense_date,
+            amount: e.amount,
+            group: e.category,
+          }))}
+        />
       </div>
 
       <ExpensesTable expenses={expenses ?? []} suppliers={suppliers ?? []} />
